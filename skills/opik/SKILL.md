@@ -63,6 +63,21 @@ trace.end({ output: { response: "Hi!" } });
 await client.flush();
 ```
 
+## Configuration
+
+When instrumenting code, always configure the workspace. Set these environment variables or pass them to the SDK client:
+
+```bash
+export OPIK_API_KEY="your-api-key"
+export OPIK_URL_OVERRIDE="https://www.comet.com/opik/api"  # Cloud
+export OPIK_PROJECT_NAME="my-project"
+export OPIK_WORKSPACE="my-workspace"
+```
+
+**IMPORTANT:** Always set `OPIK_WORKSPACE`. Without it, the SDK defaults to `"default"` which causes `401` errors on Opik Cloud. When the user provides a workspace name in their prompt, use that value. For self-hosted installations, use `"default"`.
+
+For TypeScript, the env var is `OPIK_WORKSPACE_NAME` (note the `_NAME` suffix).
+
 ## Framework Integrations
 
 Use framework-specific integrations instead of manual `@opik.track` when available — they capture more detail (tokens, model, cost) automatically.

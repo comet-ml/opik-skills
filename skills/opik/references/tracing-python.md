@@ -14,7 +14,10 @@ Or set environment variables:
 export OPIK_API_KEY="your-api-key"
 export OPIK_URL_OVERRIDE="https://www.comet.com/opik/api"  # Cloud
 export OPIK_PROJECT_NAME="my-project"
+export OPIK_WORKSPACE="my-workspace"
 ```
+
+**IMPORTANT:** Always set `OPIK_WORKSPACE` when using Opik Cloud. Without it, the SDK defaults to `"default"` which will cause `401 User not allowed to access workspace` errors. For self-hosted installations, `"default"` is correct.
 
 ## The @opik.track Decorator
 
