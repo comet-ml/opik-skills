@@ -53,7 +53,7 @@ def agent(query: str) -> str:
         fallback=AgentConfig(model="gpt-4o", temperature=0.7,
                              system_prompt="You are a helpful research assistant.", max_tokens=1024),
         project_name="research-agent",
-        latest=True,  # or env="prod" or version="v1"
+        # optional: latest=True | env="staging" | version="v1" (default: prod)
     )
     return llm_call(
         model=cfg.model,
