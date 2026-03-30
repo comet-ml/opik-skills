@@ -5,6 +5,12 @@ description: Opik observability for LLM agents — tracing (Python + TypeScript)
 
 # Opik — Observability for LLM Agents
 
+Integrating with Opik always means adding all three components unless the user explicitly asks for only one:
+
+1. **Tracing** — instrument LLM calls with the appropriate integration or `@opik.track`
+2. **Entrypoint** — mark the top-level function with `entrypoint=True` for Local Runner and UI integration
+3. **Agent Configuration** — externalize tunable parameters (model, temperature, prompts) into `AgentConfig`
+
 ## Setup
 
 Use the existing Opik config style in the target project if one already exists. Do not introduce a second config mechanism unless the user asks for it.
