@@ -365,6 +365,92 @@ const trace = client.trace({
 });
 ```
 
+## Entrypoint Functions & Local Runner
+
+Mark functions as entrypoints so they can be triggered from the Opik UI via `opik connect`. Use the `track()` function (not the decorator form) with `entrypoint: true`.
+
+### Basic Entrypoint
+
+```typescript
+import { track } from "opik";
+
+const myAgent = track(
+  {
+    name: "my-agent",
+    entrypoint: true,
+    params: [{ name: "query", type: "string" }],
+  },
+  async (query: string) => {
+    // agent logic
+    return `Response to: ${query}`;
+  }
+);
+```
+
+> **Important:** Due to TypeScript compilation stripping parameter names and types at runtime, you **must** explicitly declare `params` with `[{ name: "...", type: "..." }]`. If `params` is omitted, all parameters are assumed to be `string` type.
+
+### Express Server Integration
+
+```typescript
+import express from "express";
+import { track } from "opik";
+
+const summarize = track(
+  {
+    name: "summarize",
+    entrypoint: true,
+    params: [{ name: "message", type: "string" }],
+  },
+  async (message: string) => {
+    // call your LLM here
+    return `Summary of: ${message}`;
+  }
+);
+
+const app = express();
+
+app.get("/summarize", async (req, res) => {
+  const result = await summarize(String(req.query.message ?? ""));
+  res.send(result);
+});
+
+app.listen(3000, () => console.log("Listening on port 3000"));
+```
+
+Then pair with the Opik UI:
+
+```bash
+opik connect --pair <CODE> npx tsx summarise.ts
+```
+
+### Multiple Parameters
+
+```typescript
+const research = track(
+  {
+    name: "research-agent",
+    entrypoint: true,
+    params: [
+      { name: "topic", type: "string" },
+      { name: "depth", type: "number" },
+      { name: "include_sources", type: "boolean" },
+    ],
+  },
+  async (topic: string, depth: number, includeSources: boolean) => {
+    // research logic
+    return result;
+  }
+);
+```
+
+### What Happens After Pairing
+
+1. The runner registers the entrypoint function(s) with Opik
+2. The Opik UI shows the agent with an input form derived from `params`
+3. User types input in the browser, clicks Run, agent executes locally
+4. Full trace appears in Opik with spans, token usage, and cost
+5. Jobs from the UI or Optimizer trigger agent runs
+
 ## Best Practices
 
 1. **Always flush**: Call `client.flush()` before your application exits
@@ -374,3 +460,4 @@ const trace = client.trace({
 5. **Use threads for conversations**: Group related traces with `threadId`
 6. **Add meaningful metadata**: Include user IDs, versions, environment info
 7. **Avoid sensitive data**: Don't log PII, secrets, or credentials
+8. **Always provide params for entrypoints**: TypeScript strips param names/types at runtime

@@ -43,10 +43,95 @@ import opik
     project_name="my-project",     # Override project
     tags=["production", "v2"],     # Add tags
     metadata={"version": "1.0"},   # Add metadata
-    flush=True                     # Flush immediately (for scripts)
+    flush=True,                    # Flush immediately (for scripts)
+    entrypoint=True,               # Mark as agent entry point (enables Local Runner)
 )
 def my_function():
     pass
+```
+
+### Entrypoint Functions
+
+Mark the main agent function with `entrypoint=True` to enable:
+- **Local Runner triggering** — agent can be started from the Opik UI via `opik connect`
+- **Schema discovery** — Opik reads the function's docstring to build an input form in the UI
+
+```python
+@opik.track(entrypoint=True, project_name="my-agent")
+def run_agent(question: str, context: str = "") -> str:
+    """Run the agent with a user question.
+
+    Args:
+        question: The user's question to answer.
+        context: Optional additional context.
+    """
+    return generate_response(question, context)
+```
+
+Then pair with: `opik connect --pair <CODE> python3 app.py`
+
+### Agent Configuration Pattern
+
+Externalize hardcoded config values into an `opik.AgentConfig` subclass and retrieve at runtime:
+
+```python
+from typing import Annotated
+import opik
+
+class AgentConfig(opik.AgentConfig):
+    model: Annotated[str, "LLM model to use"]
+    temperature: Annotated[float, "Sampling temperature"]
+    system_prompt: Annotated[str, "System prompt"]
+    max_tokens: Annotated[int, "Maximum tokens"]
+
+client = opik.Opik()
+
+# Publish config
+config = AgentConfig(model="gpt-4o", temperature=0.7,
+                     system_prompt="You are a helpful assistant.", max_tokens=1024)
+client.create_agent_config_version(config, project_name="my-agent")
+
+# Retrieve at runtime — MUST be inside @opik.track
+@opik.track(entrypoint=True, project_name="my-agent")
+def run_agent(question: str) -> str:
+    cfg = client.get_agent_config(
+        fallback=AgentConfig(model="gpt-4o", temperature=0.7,
+                             system_prompt="You are a helpful assistant.", max_tokens=1024),
+        project_name="my-agent",
+        latest=True,  # or env="prod" or version="v1_abc"
+    )
+    response = openai_client.chat.completions.create(
+        model=cfg.model, temperature=cfg.temperature, max_tokens=cfg.max_tokens,
+        messages=[{"role": "system", "content": cfg.system_prompt},
+                  {"role": "user", "content": question}],
+    )
+    return response.choices[0].message.content
+```
+
+**Important:** `get_agent_config()` must be called inside a `@opik.track`-decorated function. Accessing any field injects `agent_configuration` metadata into the current trace.
+
+**Selectors** (exactly one required):
+- `latest=True` — most recently published version
+- `env="prod"` — version tagged with the given environment
+- `version="v1_abc"` — specific version by name
+
+**Deploy to environment:** `cfg.deploy_to("prod")` — can be called outside `@opik.track`
+
+### Thread ID for Conversational Agents
+
+Group multi-turn conversations into threads:
+
+```python
+@opik.track(entrypoint=True, project_name="chat-agent")
+def handle_message(session_id: str, message: str) -> str:
+    """Handle a chat message.
+
+    Args:
+        session_id: Conversation session identifier.
+        message: The user's message.
+    """
+    opik.update_current_trace(thread_id=session_id)
+    return generate_response(session_id, message)
 ```
 
 ### Nested Functions
