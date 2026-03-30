@@ -1,131 +1,99 @@
 ---
 name: opik
-description: This skill should be used when the user needs to add Opik tracing or integrations to their code, instrument an LLM application, or needs reference for Opik SDK usage (Python, TypeScript, REST API). Use for tasks like "add tracing", "instrument my code", "use track_openai", "add OpikTracer", "what span types are available", "how to flush traces".
+description: Opik SDK reference — tracing, integrations, span types, entrypoint, AgentConfig, get_agent_config(), thread_id. Use for "add tracing", "instrument my code", "add entrypoint", "extract config".
 ---
 
 # Opik SDK Reference
 
-Opik is an open-source LLM observability platform. This skill covers the SDK: tracing, integrations, span types, and how to instrument code.
+## Span Types
 
-## Core Concepts
+| Type | Use For |
+|------|---------|
+| `general` | Orchestration, entry points |
+| `llm` | LLM API calls |
+| `tool` | Tool execution, retrieval |
+| `guardrail` | Safety/validation checks |
 
-### Traces and Spans
+**Only** these four types are valid.
 
-A **trace** is a complete execution path (one user request → one response). **Spans** are individual operations within a trace, forming a hierarchy.
+## Key Parameters
 
-### Span Types
-
-| Type | Use For | Example |
-|------|---------|---------|
-| `general` | Custom operations, orchestration | Data processing, agent entry point |
-| `llm` | LLM API calls | OpenAI completion, Anthropic message |
-| `tool` | Tool/function execution, data retrieval | Web search, vector DB query, calculator |
-| `guardrail` | Safety/validation checks | PII detection, content moderation |
-
-**These are the ONLY valid span types.** Do NOT use `retrieval` or any other type.
+| Parameter | Purpose |
+|-----------|---------|
+| `entrypoint=True` | Marks main function for Local Runner UI triggering |
+| `thread_id` | Groups multi-turn traces into a conversation |
+| `opik.AgentConfig` | Externalizes config into managed Blueprints |
+| `get_agent_config()` | Retrieves config with `latest=True` / `env="prod"` / `version="v1"` |
 
 ## Python Quick Start
 
 ```python
 import opik
+from typing import Annotated
 
-@opik.track(name="my_agent", type="general")
+class AgentConfig(opik.AgentConfig):
+    model: Annotated[str, "LLM model"]
+    temperature: Annotated[float, "Sampling temperature"]
+
+@opik.track(entrypoint=True, name="my_agent")
 def agent(query: str) -> str:
-    context = retrieve(query)
-    return generate(query, context)
+    """Run the agent.
 
-@opik.track(type="tool")
-def retrieve(query: str) -> list:
-    return search_db(query)
+    Args:
+        query: User question.
+    """
+    return generate(query)
 
 @opik.track(type="llm")
-def generate(query: str, context: list) -> str:
-    return llm_call(query, context)
+def generate(query: str) -> str:
+    return llm_call(query)
 
-# Nested calls automatically create child spans
 result = agent("What is ML?")
-opik.flush_tracker()  # Flush for scripts
+opik.flush_tracker()
 ```
 
 ## TypeScript Quick Start
 
 ```typescript
-import { Opik } from "opik";
+import { track } from "opik";
 
-const client = new Opik({ projectName: "my-project" });
-
-const trace = client.trace({ name: "my-agent", input: { query: "Hello" } });
-const span = trace.span({ name: "llm-call", type: "llm" });
-// ... LLM call
-span.end({ output: { response: "Hi!" } });
-trace.end({ output: { response: "Hi!" } });
-
-await client.flush();
+const myAgent = track(
+  { name: "my-agent", entrypoint: true, params: [{ name: "query", type: "string" }] },
+  async (query: string) => { /* agent logic */ return result; }
+);
 ```
 
-## Configuration
+TS requires explicit `params` — compilation strips param names/types.
 
-When instrumenting code, always configure the workspace. Set these environment variables or pass them to the SDK client:
+## Configuration
 
 ```bash
 export OPIK_API_KEY="your-api-key"
 export OPIK_URL_OVERRIDE="https://www.comet.com/opik/api"  # Cloud
 export OPIK_PROJECT_NAME="my-project"
-export OPIK_WORKSPACE="my-workspace"
+export OPIK_WORKSPACE="my-workspace"  # Required for Cloud, "default" for self-hosted
 ```
 
-**IMPORTANT:** Always set `OPIK_WORKSPACE`. Without it, the SDK defaults to `"default"` which causes `401` errors on Opik Cloud. When the user provides a workspace name in their prompt, use that value. For self-hosted installations, use `"default"`.
-
-For TypeScript, the env var is `OPIK_WORKSPACE_NAME` (note the `_NAME` suffix).
+TypeScript uses `OPIK_WORKSPACE_NAME` (note `_NAME` suffix).
 
 ## Framework Integrations
 
-Use framework-specific integrations instead of manual `@opik.track` when available — they capture more detail (tokens, model, cost) automatically.
+Use integrations over manual `@opik.track` — they capture tokens, model, cost automatically. Full list: `references/integrations.md`.
 
-For the full list of integrations with code snippets, see `references/integrations.md`.
-
-### Common Patterns
-
-**Wrap-the-client** (OpenAI, Anthropic, Bedrock, Gemini, etc.):
 ```python
-from opik.integrations.openai import track_openai
-client = track_openai(OpenAI())
-# All calls now traced automatically
+from opik.integrations.openai import track_openai     # wrap-the-client
+from opik.integrations.langchain import OpikTracer     # callback/tracer
+from opik.integrations.crewai import track_crewai      # global enable
+from opik.integrations.dspy import OpikCallback        # callback
+from opik.integrations.adk import track_adk_agent_recursive  # agent-specific
 ```
 
-**Global enable** (CrewAI, DSPy, etc.):
-```python
-from opik.integrations.crewai import track_crewai
-track_crewai(project_name="my-project", crew=crew)  # crew= required for v1.0.0+
-```
+## References
 
-**Callback-based** (DSPy):
-```python
-from opik.integrations.dspy import OpikCallback
-dspy.configure(callbacks=[OpikCallback()])
-```
-
-**Callback/tracer** (LangChain, LangGraph, LlamaIndex):
-```python
-from opik.integrations.langchain import OpikTracer
-tracer = OpikTracer()
-result = chain.invoke(input, config={"callbacks": [tracer]})
-```
-
-**Agent-specific** (Google ADK):
-```python
-from opik.integrations.adk import OpikTracer, track_adk_agent_recursive
-opik_tracer = OpikTracer()
-track_adk_agent_recursive(agent, opik_tracer)
-```
-
-
-## Detailed References
-
-| Topic | Reference File |
-|-------|----------------|
-| Python SDK (decorators, context, async, distributed tracing) | `references/tracing-python.md` |
-| TypeScript SDK (client, decorators, framework integrations) | `references/tracing-typescript.md` |
-| REST API (HTTP endpoints, authentication) | `references/tracing-rest-api.md` |
-| All integrations with code snippets | `references/integrations.md` |
-| Core concepts (traces, spans, threads, metadata, feedback) | `references/observability.md` |
+| Topic | File |
+|-------|------|
+| Python SDK (decorators, async, distributed, config, entrypoint) | `references/tracing-python.md` |
+| TypeScript SDK (client, decorators, entrypoint, params) | `references/tracing-typescript.md` |
+| REST API | `references/tracing-rest-api.md` |
+| All integrations | `references/integrations.md` |
+| Core concepts (traces, spans, threads, metadata) | `references/observability.md` |
