@@ -93,6 +93,8 @@ import { OpikTracer } from "opik/vercel";     // Vercel AI SDK
 import { OpikTracer } from "opik";            // LangChain.js
 ```
 
+For lower-level imperative tracing (`client.trace()` / `client.span()`), see `references/tracing-typescript.md`.
+
 Always `await client.flush()` before exit.
 
 ## Agent Configuration (Blueprints)
@@ -125,7 +127,8 @@ def run_agent(question: str) -> str:
 
 - `get_agent_config()` **must** be inside `@opik.track` — raises error otherwise
 - Deploy: `cfg.deploy_to("prod")` — tags a version with an environment
-- Prompt fields: use `Prompt` / `ChatPrompt` typed fields for managed prompts
+- Prompt fields: use `Prompt` (from `opik.api_objects.prompt.text.prompt`) / `ChatPrompt` (from `opik.api_objects.prompt.chat.chat_prompt`) typed config fields for managed prompts
+- **MaskIDs:** Temporary config overrides for A/B testing — the Optimizer + Local Runner handle these transparently via `AgentConfigManager.create_mask()` + `agent_config_context()`
 - **Extract:** model, temperature, top_p, max_tokens, system prompt, tunable params
 - **Don't extract:** API keys, structural logic, true constants
 
@@ -179,7 +182,22 @@ def handle_message(session_id: str, message: str) -> str:
     return generate_response(session_id, message)
 ```
 
-Thread metrics: `SessionCompletenessMetric`, `UserFrustrationMetric`, `ConversationalCoherenceMetric` via `evaluate_threads()`.
+Thread metrics:
+
+```python
+from opik.evaluation import evaluate_threads
+from opik.evaluation.metrics.conversation import (
+    SessionCompletenessMetric, UserFrustrationMetric, ConversationalCoherenceMetric,
+)
+
+results = evaluate_threads(project_name="chat-agent", metrics=[
+    SessionCompletenessMetric(), UserFrustrationMetric(), ConversationalCoherenceMetric(),
+])
+```
+
+Use for chat agents, support bots, multi-step assistants. Skip for single-shot agents or batch processing.
+
+**Pitfalls:** Missing `thread_id` → turns appear as unrelated traces. Shared `thread_id` across users → conversations get mixed.
 
 ## Anti-Patterns
 
