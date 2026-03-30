@@ -33,11 +33,13 @@ class AgentConfig(opik.AgentConfig):
 Add `entrypoint=True` to the main function and include a docstring:
 
 ```python
-config = AgentConfig(
-    model="gpt-4o",
-    temperature=0.7,
-    system_prompt="You are a helpful research assistant.",
-    max_tokens=1024,
+client = opik.Opik()
+
+# Publish config to backend
+client.create_agent_config_version(
+    AgentConfig(model="gpt-4o", temperature=0.7,
+                system_prompt="You are a helpful research assistant.", max_tokens=1024),
+    project_name="research-agent",
 )
 
 @opik.track(entrypoint=True, project_name="research-agent")
@@ -47,11 +49,17 @@ def agent(query: str) -> str:
     Args:
         query: The research question to investigate.
     """
+    cfg = client.get_agent_config(
+        fallback=AgentConfig(model="gpt-4o", temperature=0.7,
+                             system_prompt="You are a helpful research assistant.", max_tokens=1024),
+        project_name="research-agent",
+        latest=True,  # or env="prod" or version="v1"
+    )
     return llm_call(
-        model=config.model,
-        temperature=config.temperature,
-        system_prompt=config.system_prompt,
-        max_tokens=config.max_tokens,
+        model=cfg.model,
+        temperature=cfg.temperature,
+        system_prompt=cfg.system_prompt,
+        max_tokens=cfg.max_tokens,
         user_message=query,
     )
 ```
@@ -59,19 +67,15 @@ def agent(query: str) -> str:
 ### Step 3: Connect for UI Triggering
 
 ```bash
-# Cloud (API key configured)
-opik connect
-
-# OSS (pair code from Opik UI)
-opik connect --pair ABCDEF
+opik connect --pair <CODE> python3 my_agent.py
 ```
 
 ### Step 4: Iterate via Blueprints
 
 1. Edit config in Opik UI → new Blueprint created
-2. Move `DEV` tag to new Blueprint
+2. Move `dev` tag to new Blueprint
 3. Test with Evaluation Suite
-4. If passing, move `PROD` tag
+4. If passing, move `prod` tag
 
 ### Thread Tracking for Conversational Agents
 

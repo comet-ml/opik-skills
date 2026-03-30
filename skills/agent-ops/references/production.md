@@ -77,17 +77,17 @@ In production, trace every config change with Blueprints.
 ### What Blueprints Enable
 
 - **Config Versioning** — Every config edit creates an immutable Blueprint snapshot
-- **Environment Tags** — Point `DEV`, `STAGING`, `PROD` to specific Blueprints
+- **Environment Tags** — Point `dev`, `staging`, `prod` to specific Blueprints
 - **Trace Correlation** — Every trace includes `blueprint_id` metadata showing which config produced it
-- **Rollback** — Move `PROD` tag back to a previous Blueprint if a regression is detected
+- **Rollback** — Move `prod` tag back to a previous Blueprint if a regression is detected
 - **A/B Testing** — Use MaskIDs to overlay temporary config changes without creating new Blueprints
 
 ### Production Config Workflow
 
-1. Agent reads config from the `PROD`-tagged Blueprint
+1. Agent reads config from the `prod`-tagged Blueprint
 2. Every trace is stamped with the active `blueprint_id`
 3. Dashboards can filter/group by Blueprint to compare config versions
-4. If a quality regression is detected, roll back `PROD` tag to the previous Blueprint
+4. If a quality regression is detected, roll back `prod` tag to the previous Blueprint
 
 ### MaskID Overlays for A/B Testing
 

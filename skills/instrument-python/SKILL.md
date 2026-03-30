@@ -83,5 +83,5 @@ def handle_message(session_id: str, message: str) -> str:
 ## Pitfalls
 
 - Scripts need `opik.flush_tracker()` before exit
-- Entrypoint needs docstring with `Args:` for Local Runner schema
-- `get_agent_config()` outside `@opik.track` won't inject Blueprint metadata
+- Entrypoint needs **type hints** on parameters for schema discovery (docstring `Args:` is informational only)
+- `get_agent_config()` outside `@opik.track` will raise an error

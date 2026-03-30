@@ -42,9 +42,16 @@ From within Claude Code:
 
 ## Configuration
 
+### Cloud
 ```bash
 pip install opik
-opik configure
+opik configure  # Prompts for API key — get one at https://www.comet.com/signup
+```
+
+### Self-Hosted (OSS)
+```bash
+pip install opik
+opik configure  # Point to your Opik server URL (default: http://localhost:5173)
 ```
 
 ## Directory Structure
