@@ -118,7 +118,7 @@ def run_agent(question: str) -> str:
     cfg = client.get_agent_config(
         fallback=AgentConfig(model="gpt-4o", temperature=0.7),
         project_name="my-agent",
-        latest=True,   # OR env="prod" OR version="v1" — exactly one selector
+        # optional: latest=True | env="staging" | version="v1" (default: prod)
     )
     return llm_call(model=cfg.model, temperature=cfg.temperature)
 ```

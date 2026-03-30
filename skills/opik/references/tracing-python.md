@@ -98,7 +98,7 @@ def run_agent(question: str) -> str:
         fallback=AgentConfig(model="gpt-4o", temperature=0.7,
                              system_prompt="You are a helpful assistant.", max_tokens=1024),
         project_name="my-agent",
-        latest=True,  # or env="prod" or version="v1_abc"
+        # optional: latest=True | env="staging" | version="v1_abc" (default: prod)
     )
     response = openai_client.chat.completions.create(
         model=cfg.model, temperature=cfg.temperature, max_tokens=cfg.max_tokens,
@@ -110,9 +110,9 @@ def run_agent(question: str) -> str:
 
 **Important:** `get_agent_config()` must be called inside a `@opik.track`-decorated function. Accessing any field injects `agent_configuration` metadata into the current trace.
 
-**Selectors** (exactly one required):
-- `latest=True` — most recently published version
-- `env="prod"` — version tagged with the given environment
+**Selectors** (optional — defaults to prod if omitted):
+- `latest=True` — most recently published version (useful during development)
+- `env="staging"` — version tagged with the given environment
 - `version="v1_abc"` — specific version by name
 
 **Deploy to environment:** `cfg.deploy_to("prod")` — can be called outside `@opik.track`
