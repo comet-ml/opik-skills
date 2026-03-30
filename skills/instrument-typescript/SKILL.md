@@ -1,148 +1,70 @@
 ---
 name: instrument-typescript
-description: Step-by-step guide for adding Opik observability to TypeScript/JavaScript LLM applications. Covers the Opik client, track() function with entrypoint and explicit params for Local Runner, framework integrations, and tracing patterns.
+description: Adding Opik observability to TypeScript/JS LLM apps — track() with entrypoint and explicit params for Local Runner, framework integrations.
 ---
 
-# Instrument TypeScript Agents with Opik
+# Instrument TypeScript Agents
 
-Guide to making your TypeScript/JavaScript agent observable with Opik.
-
-## Quick Start
+## Basic Tracing
 
 ```typescript
 import { Opik } from "opik";
 
-const client = new Opik({
-  projectName: process.env.OPIK_PROJECT_NAME || "my-agent",
-});
+const client = new Opik({ projectName: process.env.OPIK_PROJECT_NAME || "my-agent" });
 
-async function agent(query: string): Promise<string> {
-  const trace = client.trace({
-    name: "my-agent",
-    input: { query },
-  });
-
-  const searchSpan = trace.span({ name: "search", type: "tool" });
-  const context = await searchDB(query);
-  searchSpan.end({ output: { context } });
-
-  const llmSpan = trace.span({ name: "generate", type: "llm" });
-  const response = await llmCall(query, context);
-  llmSpan.end({ output: { response } });
-
-  trace.end({ output: { response } });
-  await client.flush();
-  return response;
-}
+const trace = client.trace({ name: "my-agent", input: { query } });
+const span = trace.span({ name: "llm-call", type: "llm" });
+span.end({ output: { response } });
+trace.end({ output: { response } });
+await client.flush();
 ```
 
-## Entrypoint Functions (Local Runner)
-
-Mark functions as entrypoints so they can be triggered from the Opik UI via `opik connect`.
+## Entrypoint (Local Runner)
 
 ```typescript
 import { track } from "opik";
 
 const myAgent = track(
-  {
-    name: "my-agent",
-    entrypoint: true,
-    params: [{ name: "query", type: "string" }],
-  },
+  { name: "my-agent", entrypoint: true, params: [{ name: "query", type: "string" }] },
   async (query: string) => {
-    // agent logic here
-    return `Response to: ${query}`;
+    // agent logic
+    return result;
   }
 );
 ```
 
-> **Important:** Due to TypeScript compilation stripping parameter names and types at runtime, you **must** explicitly declare `params` with `[{ name: "...", type: "..." }]`. If `params` is omitted, all parameters are assumed to be `string` type.
+**`params` must be explicit** — TS compilation strips param names/types. If omitted, all assumed `string`.
 
-### Wiring into an Express Server
+### Express Example
 
 ```typescript
 import express from "express";
 import { track } from "opik";
 
 const summarize = track(
-  {
-    name: "summarize",
-    entrypoint: true,
-    params: [{ name: "message", type: "string" }],
-  },
-  async (message: string) => {
-    // call your LLM here
-    return `Summary of: ${message}`;
-  }
+  { name: "summarize", entrypoint: true, params: [{ name: "message", type: "string" }] },
+  async (message: string) => `Summary of: ${message}`
 );
 
 const app = express();
-
 app.get("/summarize", async (req, res) => {
-  const result = await summarize(String(req.query.message ?? ""));
-  res.send(result);
+  res.send(await summarize(String(req.query.message ?? "")));
 });
-
-app.listen(3000, () => console.log("Listening on port 3000"));
+app.listen(3000);
 ```
 
-Then pair with: `opik connect --pair <CODE> npx tsx summarise.ts`
-
-### Multiple Parameters
-
-```typescript
-const research = track(
-  {
-    name: "research-agent",
-    entrypoint: true,
-    params: [
-      { name: "topic", type: "string" },
-      { name: "depth", type: "number" },
-      { name: "include_sources", type: "boolean" },
-    ],
-  },
-  async (topic: string, depth: number, includeSources: boolean) => {
-    // research logic
-    return result;
-  }
-);
-```
+Pair with: `opik connect --pair <CODE> npx tsx app.ts`
 
 ## Framework Integrations
 
-### OpenAI
 ```typescript
-import { Opik } from "opik";
-import { trackOpenAI } from "opik/openai";
-import OpenAI from "openai";
-
-const client = new Opik();
-const openai = trackOpenAI(new OpenAI(), { client });
+import { trackOpenAI } from "opik/openai";   // OpenAI
+import { OpikTracer } from "opik/vercel";     // Vercel AI SDK
+import { OpikTracer } from "opik";            // LangChain.js
 ```
 
-### Vercel AI SDK
-```typescript
-import { Opik } from "opik";
-import { OpikTracer } from "opik/vercel";
+## Pitfalls
 
-const client = new Opik();
-const tracer = new OpikTracer({ client });
-```
-
-## Thread ID for Conversations
-
-```typescript
-const trace = client.trace({
-  name: "chat-turn",
-  threadId: sessionId,  // Groups turns into a thread
-  input: { message },
-});
-```
-
-## Common Pitfalls
-
-- **Missing flush**: Always `await client.flush()` before process exit
-- **Project name**: Set via `OPIK_PROJECT_NAME` env var, not hardcoded
-- **Span types**: Only `general`, `llm`, `tool`, `guardrail` are valid
-- **Missing params in track()**: Without explicit `params`, the UI can't show typed input fields for the entrypoint
-- **Entrypoint not found**: Ensure `entrypoint: true` is set in the `track()` options object
+- Always `await client.flush()` before exit
+- Span types: `general`, `llm`, `tool`, `guardrail` only
+- Missing `params` in `track()` means UI can't show typed input fields
