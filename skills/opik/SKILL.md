@@ -1,38 +1,74 @@
 ---
 name: opik
-description: Opik observability for LLM agents — tracing (Python + TypeScript), Agent Configuration (Blueprints), Local Runner (opik connect), Evaluation Suites, threads, integrations. Use for "add tracing", "instrument my code", "configure my agent", "connect my agent", "evaluate my agent".
+description: Opik observability for LLM agents — tracing (Python + TypeScript), Agent Configuration, Local Runner (opik connect), Evaluation Suites, threads, integrations. Use for "add tracing", "instrument my code", "configure my agent", "connect my agent", "evaluate my agent" or "integrate with Opik".
 ---
 
 # Opik — Observability for LLM Agents
 
 ## Setup
 
-```bash
-# Python
-pip install opik && opik configure   # prompts for API key — https://www.comet.com/signup
+Use the existing Opik config style in the target project if one already exists. Do not introduce a second config mechanism unless the user asks for it.
 
-# TypeScript
-npm install opik
+Default behavior for agents:
+
+- If the user explicitly asks for environment variables, or the target is TypeScript/JavaScript, update `.env.local` if it exists, otherwise `.env`
+- If the target is Python and there is no existing project-level config style, create or update `~/.opik.config`
+- Prefer setting project names in code, not in shared machine config, because one machine may log to many projects
+
+Standard deployments:
+
+- Cloud: `https://www.comet.com/opik/api` and requires `api_key` plus `workspace`
+- Local OSS: `http://localhost:5173/api` and usually uses workspace `default`
+- Self-hosted: use the deployment's custom URL and credentials, following the same config style the project already uses
+
+Python default config file:
+
+```ini
+[opik]
+api_key=your-api-key
+url_override=https://www.comet.com/opik/api
+workspace=your-workspace
 ```
+
+Local OSS example:
+
+```ini
+[opik]
+url_override=http://localhost:5173/api
+workspace=default
+```
+
+Environment variables:
 
 ```bash
 export OPIK_API_KEY="your-api-key"
-export OPIK_URL_OVERRIDE="https://www.comet.com/opik/api"  # Cloud
-export OPIK_PROJECT_NAME="my-project"
-export OPIK_WORKSPACE="my-workspace"       # Cloud: required. OSS: "default"
-# TypeScript uses OPIK_WORKSPACE_NAME (note _NAME suffix)
+export OPIK_URL_OVERRIDE="https://www.comet.com/opik/api"
+export OPIK_WORKSPACE="your-workspace"
+# export OPIK_PROJECT_NAME="optional-project-env"
 ```
 
-## Span Types
+TypeScript uses `OPIK_WORKSPACE` as the environment variable and `workspaceName` in `new Opik({...})`.
 
-| Type | Use For |
-|------|---------|
-| `general` | Orchestration, entry points |
-| `llm` | LLM API calls |
-| `tool` | Tool execution, retrieval |
-| `guardrail` | Safety/validation checks |
+Optional interactive/manual paths:
 
-**Only** these four types are valid.
+```bash
+opik configure
+opik configure --use_local
+npx opik-ts configure
+npx opik-ts configure --use-local
+```
+
+Set the project name in code:
+
+```python
+@opik.track(project_name="my-project")
+def run():
+    ...
+```
+
+```typescript
+const client = new Opik({ projectName: "my-project" });
+```
 
 ## Python Instrumentation
 
@@ -55,6 +91,7 @@ def generate(query: str, context: list) -> str:
 result = agent("What is ML?")
 opik.flush_tracker()  # required in scripts
 ```
+Valid span types for manual instrumentation: `general`, `llm`, `tool`, `guardrail`.
 
 **Framework integrations** (prefer over manual `@opik.track` — capture tokens, model, cost):
 
@@ -67,109 +104,47 @@ from opik.integrations.dspy import OpikCallback           # DSPy
 from opik.integrations.adk import track_adk_agent_recursive  # Google ADK
 ```
 
-Don't double-wrap — use integration OR `@opik.track`, not both.
-
 ## TypeScript Instrumentation
 
 ```typescript
-import { track } from "opik";
+import { Opik } from "opik";
 
-const myAgent = track(
-  { name: "my-agent", entrypoint: true, params: [{ name: "query", type: "string" }] },
-  async (query: string) => {
-    // agent logic
-    return result;
-  }
-);
+const client = new Opik({ projectName: "my-project" });
+
+const trace = client.trace({
+  name: "my-agent",
+  input: { query: "What is ML?" },
+});
+
+const toolSpan = trace.span({
+  name: "retrieve-context",
+  type: "tool",
+  input: { query: "What is ML?" },
+});
+
+// retrieval logic
+toolSpan.end({ output: { documents: [] } });
+
+const llmSpan = trace.span({
+  name: "generate-response",
+  type: "llm",
+  input: { prompt: "What is ML?" },
+});
+
+// model call
+llmSpan.end({ output: { response: "Machine learning is..." } });
+
+trace.end({ output: { response: "Machine learning is..." } });
+await client.flush();
 ```
 
-**`params` must be explicit** — TS compilation strips param names/types. If omitted, all assumed `string`.
+Prefer the client-based path in TypeScript. Use `projectName` in code rather than machine-wide config when possible.
 
-**Framework integrations:**
-
-```typescript
-import { trackOpenAI } from "opik/openai";   // OpenAI
-import { OpikTracer } from "opik/vercel";     // Vercel AI SDK
-import { OpikTracer } from "opik";            // LangChain.js
-```
-
-For lower-level imperative tracing (`client.trace()` / `client.span()`), see `references/tracing-typescript.md`.
+For framework-specific integrations such as Vercel AI SDK or LangChain.js, see `references/tracing-typescript.md`.
 
 Always `await client.flush()` before exit.
 
-## Agent Configuration (Blueprints)
-
-Externalize tunable parameters into versioned, immutable config snapshots.
-
-```python
-from typing import Annotated
-import opik
-
-class AgentConfig(opik.AgentConfig):
-    model: Annotated[str, "LLM model"]             # NO defaults
-    temperature: Annotated[float, "Sampling temperature"]
-
-client = opik.Opik()
-client.create_agent_config_version(
-    AgentConfig(model="gpt-4o", temperature=0.7), project_name="my-agent",
-)
-# Identical values → same version (dedup). Different values → new version.
-
-@opik.track(entrypoint=True, project_name="my-agent")
-def run_agent(question: str) -> str:
-    cfg = client.get_agent_config(
-        fallback=AgentConfig(model="gpt-4o", temperature=0.7),
-        project_name="my-agent",
-        # optional: latest=True | env="staging" | version="v1" (default: prod)
-    )
-    return llm_call(model=cfg.model, temperature=cfg.temperature)
-```
-
-- `get_agent_config()` **must** be inside `@opik.track` — raises error otherwise
-- Deploy: `cfg.deploy_to("prod")` — tags a version with an environment
-- Prompt fields: use `Prompt` (from `opik.api_objects.prompt.text.prompt`) / `ChatPrompt` (from `opik.api_objects.prompt.chat.chat_prompt`) typed config fields for managed prompts
-- **MaskIDs:** Temporary config overrides for A/B testing — the Optimizer + Local Runner handle these transparently via `AgentConfigManager.create_mask()` + `agent_config_context()`
-- **Extract:** model, temperature, top_p, max_tokens, system prompt, tunable params
-- **Don't extract:** API keys, structural logic, true constants
-
-## Local Runner (opik connect)
-
-Pair your local agent with the Opik browser UI. Get a pairing code from the UI, then:
-
-```bash
-opik connect --pair <CODE> python3 app.py        # Python
-opik connect --pair <CODE> npx tsx app.ts         # TypeScript
-```
-
-Python: `@track(entrypoint=True)` + type-hinted parameters for schema discovery.
-TypeScript: `track({ entrypoint: true, params: [{name, type}] }, fn)`.
-
-After pairing: entrypoint registered as agent, UI shows input form, jobs from UI or Optimizer trigger runs.
-
-| Issue | Fix |
-|-------|-----|
-| No entrypoint found | Add `entrypoint=True` (Python) or `entrypoint: true` (TS) |
-| Invalid pair code | Codes expire — get a new one |
-| Connection refused | Check Opik server (OSS) or API key (Cloud) |
-
-## Evaluation Suites
-
-```python
-client = opik.Opik()
-suite = client.get_or_create_evaluation_suite(
-    name="my-suite",
-    assertions=["Response is factually accurate", "Response is professional"],
-    execution_policy={"runs_per_item": 3, "pass_threshold": 2},
-)
-suite.add_item(data={"input": "What is ML?"})
-results = suite.run(
-    task=lambda item: {"output": agent(item["input"])},
-    model="gpt-4o",  # LLM judge
-)
-assert results.all_passed  # CI gate
-```
-
-Use `get_or_create_evaluation_suite()` — NOT `get_or_create_dataset()`. Suite-level assertions apply to all items; item-level assertions are additive.
+Valid span types for manual instrumentation: `general`, `llm`, `tool`, `guardrail`.
 
 ## Threads (Conversations)
 
@@ -199,6 +174,86 @@ Use for chat agents, support bots, multi-step assistants. Skip for single-shot a
 
 **Pitfalls:** Missing `thread_id` → turns appear as unrelated traces. Shared `thread_id` across users → conversations get mixed.
 
+## Agent Configuration
+
+Externalize the parts of your agent you expect to tune over time into versioned, immutable config snapshots. This includes prompts, models, temperatures, token limits, and other runtime parameters you may want to compare, optimize, or roll out gradually.
+
+```python
+from typing import Annotated
+import opik
+
+class AgentConfig(opik.AgentConfig):
+    model: Annotated[str, "LLM model"]             # NO defaults
+    temperature: Annotated[float, "Sampling temperature"]
+    system_prompt: Annotated[opik.Prompt, "Managed system prompt"]
+
+DEFAULT_AGENT_CONFIG = AgentConfig(
+    model="gpt-4o",
+    temperature=0.7,
+    system_prompt=opik.Prompt(
+        name="agent-system-prompt",
+        prompt="You are a helpful assistant for {{product}}.",
+    ),
+)
+
+client = opik.Opik()
+client.create_agent_config_version(
+    AgentConfig(
+        model="gpt-4o",
+        temperature=0.7,
+        system_prompt=opik.Prompt(
+            name="agent-system-prompt",
+            prompt="You are a helpful assistant for {{product}}.",
+        ),
+    ),
+    project_name="my-agent",
+)
+# Identical values → same version (dedup). Different values → new version.
+
+@opik.track(entrypoint=True, project_name="my-agent")
+def run_agent(question: str) -> str:
+    cfg = client.get_agent_config(
+        fallback=DEFAULT_AGENT_CONFIG,
+        project_name="my-agent",
+        # optional: latest=True | env="staging" | version="v1" (default: prod)
+    )
+    return llm_call(
+        model=cfg.model,
+        temperature=cfg.temperature,
+        system_prompt=cfg.system_prompt.format(product="Opik"),
+        question=question,
+    )
+```
+
+- `get_agent_config()` **must** be inside `@opik.track` — raises error otherwise
+- Deploy: `cfg.deploy_to("prod")` — tags a version with an environment
+- Prompt fields: use `Prompt` (from `opik.api_objects.prompt.text.prompt`) / `ChatPrompt` (from `opik.api_objects.prompt.chat.chat_prompt`) typed config fields for managed prompts
+- **Extract:** model, temperature, top_p, max_tokens, system prompt, tunable params
+- **Don't extract:** API keys, structural logic, true constants
+
+## Local Runner (opik connect)
+
+Pair your local agent with the Opik browser UI. Get a pairing code from the UI, then:
+
+```bash
+opik connect --pair <CODE> python3 app.py        # Python
+opik connect --pair <CODE> npx tsx app.ts         # TypeScript
+```
+
+Replace `python3 app.py` or `npx tsx app.ts` with the normal command you use to start your app locally.
+
+Python: `@track(entrypoint=True)` + type-hinted parameters for schema discovery.
+TypeScript: `track({ entrypoint: true, params: [{name, type}] }, fn)`.
+
+After pairing: entrypoint registered as agent, UI shows input form, jobs from UI or Optimizer trigger runs.
+
+| Issue | Fix |
+|-------|-----|
+| No entrypoint found | Add `entrypoint=True` (Python) or `entrypoint: true` (TS) |
+| Invalid pair code | Codes expire — get a new one |
+| Connection refused | Check Opik server (OSS) or API key (Cloud) |
+
+
 ## Anti-Patterns
 
 | Anti-Pattern | Fix |
@@ -219,6 +274,4 @@ Use for chat agents, support bots, multi-step assistants. Skip for single-shot a
 | REST API | `references/tracing-rest-api.md` |
 | All integrations | `references/integrations.md` |
 | Core concepts (traces, spans, threads, metadata) | `references/observability.md` |
-| Agent patterns (architecture, reliability, security) | `references/agent-patterns.md` |
 | Evaluation (suites, 41 built-in metrics, trajectory) | `references/evaluation.md` |
-| Production (dashboards, alerts, guardrails) | `references/production.md` |
