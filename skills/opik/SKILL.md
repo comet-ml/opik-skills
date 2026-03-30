@@ -9,7 +9,7 @@ Integrating with Opik always means adding all three components unless the user e
 
 1. **Tracing** — instrument LLM calls with the appropriate integration or `@opik.track`
 2. **Entrypoint** — mark the top-level function with `entrypoint=True` for Local Runner and UI integration
-3. **Agent Configuration** — externalize tunable parameters (model, temperature, prompts) into `AgentConfig`
+3. **Agent Configuration** — externalize all tunable parameters into `AgentConfig`: model names, temperatures, top_p, max_tokens, all prompts and prompt templates, and any other runtime parameters the user may want to compare or optimize
 
 ## Setup
 
