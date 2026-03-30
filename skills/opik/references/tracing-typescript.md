@@ -2,34 +2,17 @@
 
 Complete guide to tracing LLM applications with the Opik TypeScript SDK.
 
-## Installation & Configuration
+## Setup Note
 
-### Quick Setup (Recommended)
+Use [SKILL.md](../SKILL.md) for the canonical setup policy.
 
-```bash
-npx opik-ts configure
-```
+TypeScript default:
 
-The CLI will:
-- Detect your project setup
-- Install required packages
-- Configure environment variables
-- Set up integrations
+- follow the project's existing Opik config style if one exists
+- otherwise update `.env.local` if it exists, else `.env`
+- prefer setting `projectName` in code instead of shared environment config
 
-### Manual Installation
-
-```bash
-npm install opik
-```
-
-Configure environment variables:
-```bash
-export OPIK_API_KEY="your-api-key"
-export OPIK_URL_OVERRIDE="https://www.comet.com/opik/api"  # Cloud
-# export OPIK_URL_OVERRIDE="http://localhost:5173/api"    # Self-hosted
-export OPIK_PROJECT_NAME="my-project"
-export OPIK_WORKSPACE_NAME="my-workspace"
-```
+If you use environment variables, the workspace variable is `OPIK_WORKSPACE`.
 
 ## Basic Usage
 

@@ -2,22 +2,17 @@
 
 Complete guide to tracing LLM applications with the Opik Python SDK.
 
-## Installation & Configuration
+## Setup Note
 
-```bash
-pip install opik
-opik configure  # Interactive setup
-```
+Use [SKILL.md](../SKILL.md) for the canonical setup policy and config-file guidance.
 
-Or set environment variables:
-```bash
-export OPIK_API_KEY="your-api-key"
-export OPIK_URL_OVERRIDE="https://www.comet.com/opik/api"  # Cloud
-export OPIK_PROJECT_NAME="my-project"
-export OPIK_WORKSPACE="my-workspace"
-```
+Python default:
 
-**IMPORTANT:** Always set `OPIK_WORKSPACE` when using Opik Cloud. Without it, the SDK defaults to `"default"` which will cause `401 User not allowed to access workspace` errors. For self-hosted installations, `"default"` is correct.
+- follow the project's existing Opik config style if one exists
+- otherwise prefer `~/.opik.config`
+- set `project_name` in code, not in shared machine config
+
+If you use Opik Cloud with environment variables, always set `OPIK_WORKSPACE`. Without it, the SDK defaults to `"default"` and will fail for most cloud workspaces.
 
 ## The @opik.track Decorator
 
@@ -169,13 +164,19 @@ import opik
 
 @opik.track
 def my_agent(query: str):
+    response = generate_response(query)
+
     # Update the current trace
     opik.opik_context.update_current_trace(
         thread_id="conversation-123",
         tags=["customer-support"],
         metadata={"user_id": "user-456"},
         feedback_scores=[
-            {"name": "quality", "value": 0.9}
+            {
+                "name": "user_feedback",
+                "value": 1.0,
+                "reason": "User clicked thumbs up",
+            }
         ]
     )
 
@@ -184,7 +185,7 @@ def my_agent(query: str):
         metadata={"model": "gpt-4", "temperature": 0.7}
     )
 
-    return "Response"
+    return response
 ```
 
 ### Getting Current Context
