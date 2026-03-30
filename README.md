@@ -23,14 +23,6 @@ Log Claude Code sessions to [Opik](https://github.com/comet-ml/opik) for LLM obs
 | `evaluation-suites` | Evaluation Suites: assertions, execution policies, CI integration |
 | `threads-conversations` | Thread tracking for multi-turn conversational agents |
 
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `/opik:instrument` | Auto-detect frameworks and add Opik observability to your code |
-| `/opik:connect` | Connect your agent to Opik for UI triggering via Local Runner |
-| `/opik:trace-claude-code` | Enable/disable Claude Code session tracing |
-
 ## Installation
 
 From within Claude Code:
@@ -58,9 +50,6 @@ opik configure  # Point to your Opik server URL (default: http://localhost:5173)
 
 ```
 opik-skills/
-├── .claude-plugin/
-│   ├── plugin.json         # Plugin manifest
-│   └── marketplace.json    # Marketplace definition
 ├── skills/
 │   ├── opik/               # Main SDK reference + references/
 │   ├── agent-ops/          # Agent lifecycle + references/
@@ -70,12 +59,6 @@ opik-skills/
 │   ├── instrument-typescript/ # TypeScript instrumentation
 │   ├── evaluation-suites/  # Evaluation Suites
 │   └── threads-conversations/ # Thread tracking
-├── commands/
-│   ├── instrument.md       # /opik:instrument command
-│   ├── connect.md          # /opik:connect command
-│   └── trace-claude-code.md # /opik:trace-claude-code command
-├── agents/
-│   └── agent-reviewer.md   # Agent code review agent
-└── hooks/
-    └── hooks.json          # Hook configuration
+├── README.md
+└── LICENSE
 ```

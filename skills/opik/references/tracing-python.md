@@ -54,7 +54,7 @@ def my_function():
 
 Mark the main agent function with `entrypoint=True` to enable:
 - **Local Runner triggering** — agent can be started from the Opik UI via `opik connect`
-- **Schema discovery** — Opik reads the function's docstring to build an input form in the UI
+- **Schema discovery** — Opik reads the function's type hints to build an input form in the UI
 
 ```python
 @opik.track(entrypoint=True, project_name="my-agent")

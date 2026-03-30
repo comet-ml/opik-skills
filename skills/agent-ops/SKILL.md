@@ -45,7 +45,7 @@ opik connect --pair ABC123 python3 app.py       # Python
 opik connect --pair ABC123 npx tsx app.ts        # TypeScript
 ```
 
-Python: `@track(entrypoint=True)` + docstring with `Args:`.
+Python: `@track(entrypoint=True)` + type-hinted parameters.
 TypeScript: `track({ entrypoint: true, params: [{name, type}] }, fn)`.
 
 ## Evaluation Suites

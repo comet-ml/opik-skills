@@ -30,7 +30,7 @@ class AgentConfig(opik.AgentConfig):
 
 ### Step 2: Mark the Entrypoint
 
-Add `entrypoint=True` to the main function and include a docstring:
+Add `entrypoint=True` to the main function with type-hinted parameters:
 
 ```python
 client = opik.Opik()
@@ -206,6 +206,24 @@ results = evaluate(
         Hallucination()
     ]
 )
+```
+
+#### Alternative: Evaluation Suites
+
+Evaluation Suites provide a higher-level API with built-in assertions and execution policies:
+
+```python
+client = opik.Opik()
+suite = client.get_or_create_evaluation_suite(
+    name="agent-quality",
+    assertions=["Response is accurate and relevant", "Response is professional"],
+    execution_policy={"runs_per_item": 3, "pass_threshold": 2},
+)
+results = suite.run(
+    task=lambda item: {"output": agent(item["input"])},
+    model="gpt-4o",
+)
+assert results.all_passed
 ```
 
 ### Step-Level Evaluation

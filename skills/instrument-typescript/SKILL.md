@@ -5,6 +5,8 @@ description: Adding Opik observability to TypeScript/JS LLM apps — track() wit
 
 # Instrument TypeScript Agents
 
+**Prerequisite:** `npm install opik` ([get API key](https://www.comet.com/signup))
+
 ## Basic Tracing
 
 ```typescript

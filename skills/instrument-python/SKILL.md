@@ -5,6 +5,8 @@ description: Adding Opik observability to Python LLM apps — @opik.track, Agent
 
 # Instrument Python Agents
 
+**Prerequisite:** `pip install opik && opik configure` ([get API key](https://www.comet.com/signup))
+
 ## 1. Add @opik.track
 
 ```python
@@ -83,5 +85,5 @@ def handle_message(session_id: str, message: str) -> str:
 ## Pitfalls
 
 - Scripts need `opik.flush_tracker()` before exit
-- Entrypoint needs **type hints** on parameters for schema discovery (docstring `Args:` is informational only)
+- Entrypoint needs type hints on parameters for Local Runner schema discovery
 - `get_agent_config()` outside `@opik.track` will raise an error

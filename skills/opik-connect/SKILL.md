@@ -64,13 +64,12 @@ opik connect --pair <CODE> python3 echo_app.py      # Python
 opik connect --pair <CODE> npx tsx summarise.ts      # TypeScript
 ```
 
-After pairing: entrypoint registered as agent, UI shows input form from params/docstring, jobs from UI or Optimizer trigger runs.
+After pairing: entrypoint registered as agent, UI shows input form from type hints (Python) or `params` (TypeScript), jobs from UI or Optimizer trigger runs.
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
 | No entrypoint found | Add `entrypoint=True` (Python) or `entrypoint: true` (TS) |
-| Agent not in UI | Python: add docstring with `Args:`. TS: add `params` array |
 | Invalid pair code | Codes expire — get a new one |
 | Connection refused | Check Opik server (OSS) or API key (Cloud) |
