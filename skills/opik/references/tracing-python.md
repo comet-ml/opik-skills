@@ -739,13 +739,9 @@ def chat_with_ollama(prompt: str) -> str:
 
 The Opik integration is on the LiteLLM side via callback:
 
-> **⚠️ Only use this for standalone scripts without `@opik.track` decorators.**
-> The `OpikLogger` callback creates its own top-level traces. If your agent has
-> `@opik.track(entrypoint=True)`, the callback traces will be orphaned (not nested
-> under your entrypoint). Use `@opik.track(type="llm")` on your LLM call function instead.
+**Standalone usage** (no `@opik.track`):
 
 ```python
-# Standalone usage (no @opik.track entrypoint):
 from litellm.integrations.opik.opik import OpikLogger
 import litellm
 
@@ -757,19 +753,37 @@ response = litellm.completion(
 )
 ```
 
+**Inside `@opik.track`** — pass `current_span_data` via metadata so the `OpikLogger` callback nests under the active trace instead of creating a standalone trace:
+
 ```python
-# Agent usage (with @opik.track entrypoint — do NOT use OpikLogger):
+from opik import track
+from opik.opik_context import get_current_span_data
+from litellm.integrations.opik.opik import OpikLogger
 import litellm
-import opik
 
-@opik.track(type="llm")
+litellm.callbacks = [OpikLogger()]
+
+@track
 def call_llm(messages, model="gpt-4"):
-    return litellm.completion(model=model, messages=messages)
+    return litellm.completion(
+        model=model,
+        messages=messages,
+        metadata={
+            "opik": {
+                "current_span_data": get_current_span_data(),
+                "tags": ["litellm"],
+            },
+        },
+    )
 
-@opik.track(entrypoint=True)
+@track(entrypoint=True)
 def agent(query: str) -> str:
     return call_llm([{"role": "user", "content": query}])
 ```
+
+> **Without the `metadata.opik.current_span_data` pass-through, `OpikLogger` creates orphaned
+> top-level traces that don't nest under your entrypoint.** Always include it when using
+> `OpikLogger` inside `@opik.track`-decorated code.
 
 ## Async Support
 

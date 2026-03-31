@@ -105,7 +105,7 @@ opik.flush_tracker()  # required in scripts
 ```
 Valid span types for manual instrumentation: `general`, `llm`, `tool`, `guardrail`.
 
-**Framework integrations** (use when there is NO `@opik.track` entrypoint — they create their own top-level traces):
+**Framework integrations** — these capture tokens, model, and cost automatically:
 
 ```python
 from opik.integrations.openai import track_openai        # OpenAI
@@ -116,14 +116,37 @@ from opik.integrations.dspy import OpikCallback           # DSPy
 from opik.integrations.adk import track_adk_agent_recursive  # Google ADK
 ```
 
-> **⚠️ Do not combine framework callbacks with `@opik.track` decorators.**
-> Callbacks like `OpikLogger` (LiteLLM), `track_openai()`, and `track_anthropic()` create
-> standalone traces. If you also have `@opik.track(entrypoint=True)` on your agent, the
-> callback traces will be **orphaned** — they won't nest under your entrypoint.
->
-> **Rule:** If your agent has an `@opik.track` entrypoint, use `@opik.track(type="llm")`
-> on LLM call functions instead of framework callbacks. If your code is just a script
-> calling an LLM with no agent structure, use the framework integration.
+**CRITICAL — LiteLLM `OpikLogger` inside `@opik.track`:**
+
+If the codebase uses `litellm` AND you are adding `@opik.track` decorators, you MUST pass `current_span_data` via the metadata parameter on every `litellm.completion()` / `litellm.acompletion()` call. This tells the `OpikLogger` callback to nest under the active trace. Without it, `OpikLogger` creates **orphaned top-level traces** that are separate from your `@opik.track` hierarchy.
+
+```python
+from opik import track
+from opik.opik_context import get_current_span_data
+from litellm.integrations.opik.opik import OpikLogger
+import litellm
+
+litellm.callbacks = [OpikLogger()]
+
+@track
+def call_llm(messages, model="gpt-4o"):
+    return litellm.completion(
+        model=model,
+        messages=messages,
+        metadata={
+            "opik": {
+                "current_span_data": get_current_span_data(),
+                "tags": ["litellm"],
+            },
+        },
+    )
+
+@track(entrypoint=True)
+def agent(query: str) -> str:
+    return call_llm([{"role": "user", "content": query}])
+```
+
+This pattern applies whenever you see `litellm.completion` or `litellm.acompletion` in existing code that you are instrumenting with `@opik.track`.
 
 ## TypeScript Instrumentation
 
