@@ -222,6 +222,14 @@ Use for chat agents, support bots, multi-step assistants. Skip for single-shot a
 
 Externalize the parts of your agent you expect to tune over time into versioned, immutable config snapshots. This includes prompts, models, temperatures, token limits, and other runtime parameters you may want to compare, optimize, or roll out gradually.
 
+**CRITICAL — Search for existing config classes first.** Before creating a new `AgentConfig`, search the codebase for existing classes that hold tunable parameters (model names, temperatures, prompts, token limits, etc.). Look for names like `AgentConfig`, `Config`, `Settings`, `AgentSettings`, `ModelConfig`, or any `@dataclass`/Pydantic model with fields like `model`, `temperature`, `system_prompt`, `max_tokens`. **An existing config class is a migration target, not a reason to skip this step.** If found, convert it to inherit from `opik.AgentConfig`:
+
+1. Replace the existing base (`@dataclass`, `BaseModel`, plain class) with `opik.AgentConfig`
+2. Add `Annotated` type hints with descriptions to each field
+3. Convert plain `str` prompt fields to `opik.Prompt`
+4. Wire up `client.create_agent_config_version()` at startup and `client.get_agent_config()` inside the entrypoint
+5. Update all call sites that reference the old config to use the new Opik-managed config
+
 ```python
 from typing import Annotated
 import opik
@@ -302,6 +310,7 @@ After pairing: entrypoint registered as agent, UI shows input form, jobs from UI
 
 | Anti-Pattern | Fix |
 |-------------|-----|
+| Existing config class left unconverted (e.g., `@dataclass` with model/temperature/prompt fields) | Convert to `opik.AgentConfig` subclass — an existing config is a migration target, not a skip signal |
 | Hardcoded config | Use `AgentConfig` + `get_agent_config()` |
 | Missing entrypoint | Add `entrypoint=True` for Local Runner |
 | No thread_id on conversational agent | Wire `thread_id` from session ID |
