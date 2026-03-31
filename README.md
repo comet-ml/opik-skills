@@ -24,9 +24,7 @@
 
 </div>
 
-## Why this repo
-
-This repository is not an SDK or plugin. It is a portable skill pack that teaches AI coding agents how to work with Opik in real codebases.
+This repo contains a number of skills that teach AI coding agents how to work with Opik in real codebases.
 
 After install, your agent can help with tasks like:
 
