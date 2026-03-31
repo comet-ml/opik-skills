@@ -8,9 +8,10 @@ Use [SKILL.md](../SKILL.md) for the canonical setup policy.
 
 TypeScript default:
 
-- follow the project's existing Opik config style if one exists
-- otherwise update `.env.local` if it exists, else `.env`
-- prefer setting `projectName` in code instead of shared environment config
+- **Check for existing `.env` / `.env.local` first.** If the project already has one with other API keys, append `OPIK_API_KEY` and `OPIK_WORKSPACE` to that same file. Also update `.env.example` / `.env.sample` if one exists.
+- **If no env file exists:** create `.env.local` for Next.js/Vite projects, `.env` for everything else.
+- **Never overwrite** existing values — only add missing vars.
+- Prefer setting `projectName` in code instead of shared environment config.
 
 If you use environment variables, the workspace variable is `OPIK_WORKSPACE`.
 

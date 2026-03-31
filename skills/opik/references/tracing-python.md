@@ -8,9 +8,11 @@ Use [SKILL.md](../SKILL.md) for the canonical setup policy and config-file guida
 
 Python default:
 
-- follow the project's existing Opik config style if one exists
-- otherwise prefer `~/.opik.config`
-- set `project_name` in code, not in shared machine config
+- **Check for `.env` first.** If the project uses `python-dotenv` or has a `.env` file with other API keys, append `OPIK_API_KEY` and `OPIK_WORKSPACE` to that file. Also update `.env.example` if one exists.
+- **Only use `~/.opik.config`** if the project has no `.env` file and no dotenv usage.
+- **Never create both** — one config mechanism per project.
+- **Never overwrite** existing values — only add missing vars.
+- Set `project_name` in code, not in shared machine config.
 
 If you use Opik Cloud with environment variables, always set `OPIK_WORKSPACE`. Without it, the SDK defaults to `"default"` and will fail for most cloud workspaces.
 
