@@ -13,21 +13,29 @@ Integrating with Opik always means adding all three components unless the user e
 
 ## Setup
 
-Use the existing Opik config style in the target project if one already exists. Do not introduce a second config mechanism unless the user asks for it.
+### Environment Config Decision Tree
 
-Default behavior for agents:
+**Before adding Opik config, inspect the project's existing config approach.** Follow this decision tree exactly:
 
-- If the user explicitly asks for environment variables, or the target is TypeScript/JavaScript, update `.env.local` if it exists, otherwise `.env`
-- If the target is Python and there is no existing project-level config style, create or update `~/.opik.config`
-- Prefer setting project names in code, not in shared machine config, because one machine may log to many projects
+1. **Check for existing `.env` / `.env.local` files and `dotenv` usage in code.**
+   - If the project loads a `.env` file (via `python-dotenv`, `dotenv`, or framework auto-loading): **append** `OPIK_API_KEY` and `OPIK_WORKSPACE` to that same file. Do NOT create a separate config file.
+   - If there is a `.env.example` or `.env.sample`: **also update it** with the new Opik vars (using placeholder values) so future developers know which vars are needed.
 
-Standard deployments:
+2. **If no `.env` file exists:**
+   - Python: create or update `~/.opik.config` (INI format). This is the SDK's native config file.
+   - TypeScript/JavaScript: create `.env` (or `.env.local` if the project uses Next.js or similar).
 
-- Cloud: `https://www.comet.com/opik/api` and requires `api_key` plus `workspace`
-- Local OSS: `http://localhost:5173/api` and usually uses workspace `default`
-- Self-hosted: use the deployment's custom URL and credentials, following the same config style the project already uses
+3. **Never introduce a second config mechanism.** If the project already uses `.env` for API keys, do NOT also create `~/.opik.config`. If it uses `~/.opik.config`, do NOT add Opik vars to `.env`.
 
-Python default config file:
+4. **Never overwrite existing values.** If `OPIK_API_KEY` is already set in `.env`, leave it. Only add vars that are missing.
+
+5. **Prefer setting `project_name` in code**, not in env files — one machine may log to many projects.
+
+6. **If the user provides an API key and workspace in the prompt**, use those values directly. If they provide only an API key, ask for the workspace or default to `"default"` for local OSS.
+
+### Config Formats
+
+Python `~/.opik.config` (INI):
 
 ```ini
 [opik]
@@ -36,26 +44,24 @@ url_override=https://www.comet.com/opik/api
 workspace=your-workspace
 ```
 
-Local OSS example:
-
-```ini
-[opik]
-url_override=http://localhost:5173/api
-workspace=default
-```
-
-Environment variables:
+Environment variables (append to existing `.env`):
 
 ```bash
-export OPIK_API_KEY="your-api-key"
-export OPIK_URL_OVERRIDE="https://www.comet.com/opik/api"
-export OPIK_WORKSPACE="your-workspace"
-# export OPIK_PROJECT_NAME="optional-project-env"
+# Opik
+OPIK_API_KEY=your-api-key
+OPIK_URL_OVERRIDE=https://www.comet.com/opik/api
+OPIK_WORKSPACE=your-workspace
 ```
 
-TypeScript uses `OPIK_WORKSPACE` as the environment variable and `workspaceName` in `new Opik({...})`.
+TypeScript uses `OPIK_WORKSPACE` as the env var and `workspaceName` in `new Opik({...})`.
 
-Optional interactive/manual paths:
+### Standard Deployments
+
+- Cloud: `https://www.comet.com/opik/api` — requires `api_key` + `workspace`
+- Local OSS: `http://localhost:5173/api` — usually workspace `default`
+- Self-hosted: use the deployment's custom URL, following the project's existing config style
+
+### Interactive Config (optional)
 
 ```bash
 opik configure
@@ -99,7 +105,7 @@ opik.flush_tracker()  # required in scripts
 ```
 Valid span types for manual instrumentation: `general`, `llm`, `tool`, `guardrail`.
 
-**Framework integrations** (prefer over manual `@opik.track` — capture tokens, model, cost):
+**Framework integrations** — these capture tokens, model, and cost automatically:
 
 ```python
 from opik.integrations.openai import track_openai        # OpenAI
@@ -109,6 +115,38 @@ from opik.integrations.crewai import track_crewai         # CrewAI
 from opik.integrations.dspy import OpikCallback           # DSPy
 from opik.integrations.adk import track_adk_agent_recursive  # Google ADK
 ```
+
+**CRITICAL — LiteLLM `OpikLogger` inside `@opik.track`:**
+
+If the codebase uses `litellm` AND you are adding `@opik.track` decorators, you MUST pass `current_span_data` via the metadata parameter on every `litellm.completion()` / `litellm.acompletion()` call. This tells the `OpikLogger` callback to nest under the active trace. Without it, `OpikLogger` creates **orphaned top-level traces** that are separate from your `@opik.track` hierarchy.
+
+```python
+from opik import track
+from opik.opik_context import get_current_span_data
+from litellm.integrations.opik.opik import OpikLogger
+import litellm
+
+litellm.callbacks = [OpikLogger()]
+
+@track
+def call_llm(messages, model="gpt-4o"):
+    return litellm.completion(
+        model=model,
+        messages=messages,
+        metadata={
+            "opik": {
+                "current_span_data": get_current_span_data(),
+                "tags": ["litellm"],
+            },
+        },
+    )
+
+@track(entrypoint=True)
+def agent(query: str) -> str:
+    return call_llm([{"role": "user", "content": query}])
+```
+
+This pattern applies whenever you see `litellm.completion` or `litellm.acompletion` in existing code that you are instrumenting with `@opik.track`.
 
 ## TypeScript Instrumentation
 

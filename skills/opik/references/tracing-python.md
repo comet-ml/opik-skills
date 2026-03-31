@@ -8,9 +8,11 @@ Use [SKILL.md](../SKILL.md) for the canonical setup policy and config-file guida
 
 Python default:
 
-- follow the project's existing Opik config style if one exists
-- otherwise prefer `~/.opik.config`
-- set `project_name` in code, not in shared machine config
+- **Check for `.env` first.** If the project uses `python-dotenv` or has a `.env` file with other API keys, append `OPIK_API_KEY` and `OPIK_WORKSPACE` to that file. Also update `.env.example` if one exists.
+- **Only use `~/.opik.config`** if the project has no `.env` file and no dotenv usage.
+- **Never create both** — one config mechanism per project.
+- **Never overwrite** existing values — only add missing vars.
+- Set `project_name` in code, not in shared machine config.
 
 If you use Opik Cloud with environment variables, always set `OPIK_WORKSPACE`. Without it, the SDK defaults to `"default"` and will fail for most cloud workspaces.
 
@@ -737,18 +739,51 @@ def chat_with_ollama(prompt: str) -> str:
 
 The Opik integration is on the LiteLLM side via callback:
 
+**Standalone usage** (no `@opik.track`):
+
 ```python
 from litellm.integrations.opik.opik import OpikLogger
 import litellm
 
 litellm.callbacks = [OpikLogger()]
 
-# All LiteLLM calls are traced regardless of provider
 response = litellm.completion(
     model="gpt-4",
     messages=[{"role": "user", "content": "Hello"}]
 )
 ```
+
+**Inside `@opik.track`** — pass `current_span_data` via metadata so the `OpikLogger` callback nests under the active trace instead of creating a standalone trace:
+
+```python
+from opik import track
+from opik.opik_context import get_current_span_data
+from litellm.integrations.opik.opik import OpikLogger
+import litellm
+
+litellm.callbacks = [OpikLogger()]
+
+@track
+def call_llm(messages, model="gpt-4"):
+    return litellm.completion(
+        model=model,
+        messages=messages,
+        metadata={
+            "opik": {
+                "current_span_data": get_current_span_data(),
+                "tags": ["litellm"],
+            },
+        },
+    )
+
+@track(entrypoint=True)
+def agent(query: str) -> str:
+    return call_llm([{"role": "user", "content": query}])
+```
+
+> **Without the `metadata.opik.current_span_data` pass-through, `OpikLogger` creates orphaned
+> top-level traces that don't nest under your entrypoint.** Always include it when using
+> `OpikLogger` inside `@opik.track`-decorated code.
 
 ## Async Support
 
