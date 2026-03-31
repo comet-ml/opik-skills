@@ -99,7 +99,7 @@ opik.flush_tracker()  # required in scripts
 ```
 Valid span types for manual instrumentation: `general`, `llm`, `tool`, `guardrail`.
 
-**Framework integrations** (prefer over manual `@opik.track` — capture tokens, model, cost):
+**Framework integrations** (use when there is NO `@opik.track` entrypoint — they create their own top-level traces):
 
 ```python
 from opik.integrations.openai import track_openai        # OpenAI
@@ -109,6 +109,15 @@ from opik.integrations.crewai import track_crewai         # CrewAI
 from opik.integrations.dspy import OpikCallback           # DSPy
 from opik.integrations.adk import track_adk_agent_recursive  # Google ADK
 ```
+
+> **⚠️ Do not combine framework callbacks with `@opik.track` decorators.**
+> Callbacks like `OpikLogger` (LiteLLM), `track_openai()`, and `track_anthropic()` create
+> standalone traces. If you also have `@opik.track(entrypoint=True)` on your agent, the
+> callback traces will be **orphaned** — they won't nest under your entrypoint.
+>
+> **Rule:** If your agent has an `@opik.track` entrypoint, use `@opik.track(type="llm")`
+> on LLM call functions instead of framework callbacks. If your code is just a script
+> calling an LLM with no agent structure, use the framework integration.
 
 ## TypeScript Instrumentation
 

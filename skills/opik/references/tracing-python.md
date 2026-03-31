@@ -737,17 +737,36 @@ def chat_with_ollama(prompt: str) -> str:
 
 The Opik integration is on the LiteLLM side via callback:
 
+> **⚠️ Only use this for standalone scripts without `@opik.track` decorators.**
+> The `OpikLogger` callback creates its own top-level traces. If your agent has
+> `@opik.track(entrypoint=True)`, the callback traces will be orphaned (not nested
+> under your entrypoint). Use `@opik.track(type="llm")` on your LLM call function instead.
+
 ```python
+# Standalone usage (no @opik.track entrypoint):
 from litellm.integrations.opik.opik import OpikLogger
 import litellm
 
 litellm.callbacks = [OpikLogger()]
 
-# All LiteLLM calls are traced regardless of provider
 response = litellm.completion(
     model="gpt-4",
     messages=[{"role": "user", "content": "Hello"}]
 )
+```
+
+```python
+# Agent usage (with @opik.track entrypoint — do NOT use OpikLogger):
+import litellm
+import opik
+
+@opik.track(type="llm")
+def call_llm(messages, model="gpt-4"):
+    return litellm.completion(model=model, messages=messages)
+
+@opik.track(entrypoint=True)
+def agent(query: str) -> str:
+    return call_llm([{"role": "user", "content": query}])
 ```
 
 ## Async Support

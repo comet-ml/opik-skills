@@ -2,6 +2,12 @@
 
 Comprehensive guide to Opik integrations organized by integration mechanism.
 
+> **⚠️ Integration callbacks vs `@opik.track` — pick one approach per LLM call site.**
+>
+> - **Use a framework integration** (`track_openai()`, `OpikLogger`, etc.) when your app has NO `@opik.track` entrypoint. The integration creates its own top-level traces automatically.
+> - **Use `@opik.track(type="llm")`** on your LLM call function when your agent has an `@opik.track(entrypoint=True)`. This nests the LLM span under the entrypoint trace.
+> - **Never combine both** on the same call path — the callback creates standalone traces that don't nest under `@opik.track`, resulting in orphaned duplicate traces.
+
 ## A. Python — Direct Opik SDK Integrations
 
 These use modules that exist in `opik.integrations.*`. They provide the richest tracing with automatic token/cost capture.
@@ -341,6 +347,11 @@ response = client.chat.completions.create(
 
 LiteLLM provides a unified interface to 100+ LLM providers. The Opik integration is on the LiteLLM side:
 
+> **When to use this:** For standalone scripts or apps that do NOT use `@opik.track` decorators.
+> If your agent already has `@opik.track(entrypoint=True)`, do NOT add `OpikLogger` — it creates
+> separate top-level traces that won't nest under your entrypoint. Use `@opik.track(type="llm")`
+> on your LLM call function instead.
+
 ```python
 from litellm.integrations.opik.opik import OpikLogger
 import litellm
@@ -603,7 +614,7 @@ Use the Opik node in n8n:
 
 ### Layering Integrations
 
-You can combine integrations:
+You can combine framework-level integrations (e.g., LangChain tracer + tracked OpenAI client), but **do not combine them with `@opik.track` decorators** on the same call path — see warning at the top of this file.
 
 ```python
 from opik.integrations.openai import track_openai
