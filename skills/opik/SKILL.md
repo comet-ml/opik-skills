@@ -1,6 +1,6 @@
 ---
 name: opik
-description: Opik observability for LLM agents — tracing (Python + TypeScript), Agent Configuration, Local Runner (opik connect), Evaluation Suites, threads, integrations. Use for "add tracing", "instrument my code", "configure my agent", "connect my agent", "evaluate my agent" or "integrate with Opik".
+description: Opik observability for LLM agents — Agent Configuration, Local Runner (opik connect), Evaluation Suites, threads, integrations. Use for "configure my agent", "connect my agent", "evaluate my agent" or "integrate with Opik".
 ---
 
 # Opik — Observability for LLM Agents
