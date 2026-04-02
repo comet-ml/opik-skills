@@ -59,6 +59,41 @@ Find:
 - **Tool functions**: retrieval, search, API calls, or other tool-like operations
 - **Existing config classes**: dataclasses, Pydantic models, or plain classes holding model names, temperatures, prompts, or other tunable parameters
 
+### Entrypoint Parameter Rules
+
+The function marked with `entrypoint=True` **must only accept primitive-typed parameters**: `str`, `int`, `float`, `bool`, and `list`/`dict` of primitives. This is because:
+- Opik reads the function's type hints to build an **input form in the UI**
+- Users will type these values manually in a text field via the Local Runner
+- Complex types (Pydantic models, dataclasses, request objects, custom classes) cannot be entered in a UI input field
+
+**If the candidate entrypoint accepts complex types** (e.g., a request model, a config object, a dataclass):
+1. **Look higher in the call chain** for a function that already accepts primitives
+2. If none exists, **create a thin wrapper function** that accepts only primitives, unpacks them, and calls the original function. Move the `entrypoint=True` decorator to this wrapper.
+
+**Example — bad entrypoint (complex parameter):**
+```python
+# ❌ DO NOT mark this as entrypoint — RecommendRequest is a Pydantic model
+@app.post("/recommend")
+async def recommend(request: RecommendRequest):
+    summary, tool_results = await run_agent(user_message=build_user_message(request))
+    return RecommendResponse(city=request.city, recommendations=_extract_recommendations(tool_results), summary=summary)
+```
+
+**Example — good entrypoint (primitives only):**
+```python
+@opik.track(name="recommend-agent", entrypoint=True)
+async def _run_entrypoint(user_message: str) -> tuple[str, list[dict]]:
+    """Opik entrypoint — receives only the user message for Local Runner schema."""
+    return await run_agent(user_message=user_message)
+
+@app.post("/recommend")
+async def recommend(request: RecommendRequest):
+    summary, tool_results = await _run_entrypoint(user_message=build_user_message(request))
+    return RecommendResponse(city=request.city, recommendations=_extract_recommendations(tool_results), summary=summary)
+```
+
+The wrapper extracts the primitive values from the complex object and delegates to the existing logic. The HTTP handler calls the wrapper instead of the inner function directly, so the trace captures the full execution.
+
 ## Step 4 — Add Framework Integrations
 
 For each detected framework, add the appropriate integration at the module level. See the integration table above and `references/integrations.md` for the exact patterns.
@@ -111,6 +146,8 @@ Add `import opik` at the top of each file you instrument.
 | Guardrail / validation | `@opik.track(type="guardrail")` |
 | Other helper in the call chain | `@opik.track` |
 
+- **Entrypoint parameters must be primitives only** (`str`, `int`, `float`, `bool`, `list`, `dict`). If the natural entrypoint takes a complex type, create a wrapper — see Step 3 "Entrypoint Parameter Rules".
+- **Config access must happen inside `@opik.track`**: Any call to `client.get_agent_config()` and subsequent access of config fields must occur inside a `@opik.track`-decorated function, or in a function called downstream from one. This is how Opik injects `agent_configuration` metadata into the current trace. Calling it at module level or outside the traced call stack will raise an error.
 - Place the decorator **above** any existing decorators (e.g., above `@app.route`)
 - For async functions, `@opik.track` works the same way — no changes needed
 - If the function is a **script entrypoint** (not a long-running server), add `opik.flush_tracker()` after the top-level call
@@ -132,7 +169,7 @@ trace.end({ output: { ... } });
 await client.flush();
 ```
 
-For entrypoints that should be discoverable by `opik connect`:
+For entrypoints that should be discoverable by `opik connect` — note that `params` must only use primitive types (`string`, `number`, `boolean`) since users enter these values in a UI text field:
 
 ```typescript
 import { track } from "opik";
@@ -189,6 +226,8 @@ After instrumentation, do a quick audit:
 
 - [ ] Every LLM call site is traced (via integration wrapper or `@opik.track`)
 - [ ] Exactly one function has `entrypoint=True`
+- [ ] The entrypoint function accepts only primitive parameters (`str`, `int`, `float`, `bool`, `list`, `dict`) — no Pydantic models, dataclasses, or custom classes
+- [ ] All `get_agent_config()` calls and config field access happen inside `@opik.track`-decorated functions (or downstream from one)
 - [ ] Script entrypoints call `opik.flush_tracker()` (Python) or `await client.flush()` (TypeScript)
 - [ ] LiteLLM calls inside `@opik.track` pass `current_span_data` via metadata
 - [ ] No hardcoded API keys were introduced
@@ -198,6 +237,8 @@ After instrumentation, do a quick audit:
 
 - **Double-wrapping**: Don't add `@opik.track(type="llm")` to a function that already uses a framework integration (e.g., `track_openai`). The integration handles tracing.
 - **Orphaned LiteLLM traces**: Always pass `current_span_data` when `OpikLogger` is used inside `@opik.track` code.
+- **Complex entrypoint parameters**: The entrypoint function must only accept primitives (`str`, `int`, `float`, `bool`, `list`, `dict`). Pydantic models, dataclasses, or custom classes can't be typed into a UI input field. If the natural entrypoint takes a complex type, create a thin wrapper that accepts primitives.
+- **Config access outside `@opik.track`**: `get_agent_config()` and config field reads must happen inside a `@opik.track`-decorated function or downstream from one. Module-level or untraced calls will fail and won't attach config metadata to the trace.
 - **Missing entrypoint**: Without `entrypoint=True`, Local Runner (`opik connect`) won't discover the agent.
 - **Missing flush**: Scripts that exit without flushing lose trace data.
 - **Overwriting config**: Check before writing to `.env` or `~/.opik.config`.
