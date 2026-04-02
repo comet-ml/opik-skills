@@ -53,6 +53,8 @@ Mark the main agent function with `entrypoint=True` to enable:
 - **Local Runner triggering** — agent can be started from the Opik UI via `opik connect`
 - **Schema discovery** — Opik reads the function's type hints to build an input form in the UI
 
+**Parameter constraint:** The entrypoint function **must only accept primitive-typed parameters**: `str`, `int`, `float`, `bool`, and `list`/`dict` of primitives. These values are entered manually by users in a UI text field via the Local Runner — complex types (Pydantic models, dataclasses, request objects) cannot be represented there. If the natural top-level function accepts a complex type, create a thin wrapper that accepts primitives and delegates to the original.
+
 ```python
 @opik.track(entrypoint=True, project_name="my-agent")
 def run_agent(question: str, context: str = "") -> str:
