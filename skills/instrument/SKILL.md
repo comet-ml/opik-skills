@@ -204,6 +204,19 @@ Follow the setup decision tree from the main opik skill:
 5. Update `.env.example` / `.env.sample` if one exists
 6. Set `project_name` in code, not in env files
 
+### `OPIK_URL_OVERRIDE` path rules
+
+The URL suffix depends on where Opik is hosted:
+
+| Deployment | URL format | Example |
+|---|---|---|
+| Opik Cloud / managed | `<base>/opik/api` | `https://www.comet.com/opik/api` |
+| Self-hosted (local) | `<base>/api` | `http://localhost:5173/api` |
+
+- **Cloud/managed**: always append `/opik/api`
+- **Self-hosted** (typically `localhost` or an internal hostname): append only `/api` — no `/opik` prefix
+- When writing or suggesting an `OPIK_URL_OVERRIDE` value, apply this rule so users don't have to remember it
+
 ## Step 8 — Install Dependencies
 
 Print the install command but do NOT run it automatically. Let the user decide.
