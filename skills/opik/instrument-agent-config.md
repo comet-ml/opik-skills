@@ -1,6 +1,6 @@
 ---
 name: instrument-agent-config
-description: Add Opik AgentConfig to an existing codebase. Finds hardcoded parameters and existing config classes, converts them to versioned opik.AgentConfig, and wires up create/get at runtime. Does not require prior instrumentation — sets up tracing and environment config if missing. Use for "add agent config", "externalize my config", "add opik agent configuration", or "version my agent parameters".
+description: Add Opik Config to an existing codebase. Finds hardcoded parameters and existing config classes, converts them to versioned opik.Config subclasses, and wires up get_or_create_config at runtime. Does not require prior instrumentation — sets up tracing and environment config if missing. Use for "add agent config", "externalize my config", "add opik config", or "version my agent parameters".
 argument-hint: "[file or directory path]"
 compatibility: Works with Claude Code, OpenAI Codex, Cursor, and any Agent Skills-compatible tool. Requires a Python or TypeScript project.
 allowed-tools:
@@ -12,11 +12,11 @@ allowed-tools:
   - Bash
 ---
 
-# Instrument Agent Config — Add Opik AgentConfig to a Codebase
+# Instrument Agent Config — Add Opik Config to a Codebase
 
-You are adding versioned agent configuration to an existing codebase using `opik.AgentConfig`. This externalizes all tunable parameters (models, temperatures, prompts, token limits) so they can be versioned, compared, and deployed through the Opik UI.
+You are adding versioned agent configuration to an existing codebase using `opik.Config`. This externalizes all tunable parameters (models, temperatures, prompts, token limits) so they can be versioned, compared, and deployed through the Opik UI.
 
-This skill does NOT assume the codebase has already been instrumented with Opik tracing. If tracing is missing, you will add the minimum required tracing to support agent configuration.
+This skill does NOT assume the codebase has already been instrumented with Opik tracing. If tracing is missing, you will add the minimum required tracing to support configuration.
 
 Follow these steps precisely.
 
@@ -41,7 +41,7 @@ Search for classes that hold tunable parameters. Look for names like `AgentConfi
 
 **An existing config class is a migration target, not a reason to skip this step.**
 
-If the class already inherits from `opik.AgentConfig`, audit it for completeness but do not re-migrate.
+If the class already inherits from `opik.Config`, audit it for completeness but do not re-migrate.
 
 ### Hardcoded parameters (extraction targets)
 
@@ -66,17 +66,20 @@ Before adding anything, check what's already in place:
 
 Note what exists and what's missing — you'll fill the gaps in the following steps.
 
-## Step 5 — Create or Convert the AgentConfig Class
+## Step 5 — Create or Convert the Config Class
 
 ### Python
 
 #### If an existing config class was found — migrate it:
 
-1. Replace the existing base (`@dataclass`, `BaseModel`, plain class) with `opik.AgentConfig`
-2. Add `Annotated` type hints with descriptions to each field (if not already present)
-3. Convert plain `str` prompt fields to `opik.Prompt`
-4. Remove any defaults from the class fields — defaults go in the `DEFAULT_*` instance
-5. Keep the class in its existing file unless it makes more sense to move it
+1. Replace the existing base (`@dataclass`, `BaseModel`, plain class) with `opik.Config`
+2. Convert plain `str` prompt fields to `opik.Prompt` or `opik.ChatPrompt` (see below)
+3. Remove any defaults from the class fields — defaults go in the `DEFAULT_CONFIG` instance
+4. Keep the class in its existing file unless it makes more sense to move it
+
+**Prompt field types:**
+- Use `opik.Prompt` for single string-based system prompts or templates
+- Use `opik.ChatPrompt` for multi-turn message templates (list of `{"role": ..., "content": ...}` messages)
 
 Example migration from a dataclass:
 
@@ -91,15 +94,14 @@ class Config:
     system_prompt: str = "You are a helpful assistant."
 
 # AFTER
-from typing import Annotated
 import opik
 
-class AgentConfig(opik.AgentConfig):
-    model: Annotated[str, "LLM model"]
-    temperature: Annotated[float, "Sampling temperature"]
-    system_prompt: Annotated[opik.Prompt, "Managed system prompt"]
+class AgentConfig(opik.Config):
+    model: str
+    temperature: float
+    system_prompt: opik.Prompt
 
-DEFAULT_AGENT_CONFIG = AgentConfig(
+DEFAULT_CONFIG = AgentConfig(
     model="gpt-4o",
     temperature=0.7,
     system_prompt=opik.Prompt(
@@ -109,20 +111,42 @@ DEFAULT_AGENT_CONFIG = AgentConfig(
 )
 ```
 
+Example with a chat prompt:
+
+```python
+import opik
+
+class AgentConfig(opik.Config):
+    model: str
+    temperature: float
+    chat_template: opik.ChatPrompt
+
+DEFAULT_CONFIG = AgentConfig(
+    model="gpt-4o",
+    temperature=0.7,
+    chat_template=opik.ChatPrompt(
+        name="agent-chat-template",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Help me with {{task}}"},
+        ],
+    ),
+)
+```
+
 #### If no config class exists — create one:
 
 Gather all hardcoded tunable parameters found in Step 3 and define a new `AgentConfig` class. Place it in a sensible location — either in the main module or in a dedicated `config.py` file if the project already uses that pattern.
 
 ```python
-from typing import Annotated
 import opik
 
-class AgentConfig(opik.AgentConfig):
-    model: Annotated[str, "LLM model"]
-    temperature: Annotated[float, "Sampling temperature"]
-    system_prompt: Annotated[opik.Prompt, "Managed system prompt"]
+class AgentConfig(opik.Config):
+    model: str
+    temperature: float
+    system_prompt: opik.Prompt
 
-DEFAULT_AGENT_CONFIG = AgentConfig(
+DEFAULT_CONFIG = AgentConfig(
     model="gpt-4o",
     temperature=0.7,
     system_prompt=opik.Prompt(
@@ -134,42 +158,88 @@ DEFAULT_AGENT_CONFIG = AgentConfig(
 
 ### TypeScript
 
-AgentConfig is Python-only. For TypeScript projects, inform the user that agent configuration is currently available in Python only. If the project has a Python backend, instrument that. Otherwise, suggest they track configuration manually via trace metadata until TypeScript support is added.
+Define an interface for the config shape, then pass an object that satisfies it as the fallback. Use `Prompt` for string-based templates and `ChatPrompt` for multi-turn message templates:
 
-## Step 6 — Wire Up Config Publishing and Retrieval
+```typescript
+import { Opik, Prompt, ChatPrompt } from "opik";
 
-### Publish at startup
+interface AgentConfig {
+  model: string;
+  temperature: number;
+  systemPrompt: Prompt;
+  chatTemplate: ChatPrompt;
+}
 
-Add a module-level `client` and `create_agent_config_version` call. Choose a meaningful `project_name` based on the agent's purpose.
+const client = new Opik();
 
-```python
-client = opik.Opik()
-client.create_agent_config_version(
-    DEFAULT_AGENT_CONFIG,
-    project_name="<project-name>",
-)
+const DEFAULT_CONFIG: AgentConfig = {
+  model: "gpt-4o",
+  temperature: 0.7,
+  systemPrompt: await client.createPrompt({
+    name: "agent-system-prompt",
+    prompt: "You are a helpful assistant.",
+  }),
+  chatTemplate: await client.createChatPrompt({
+    name: "agent-chat-template",
+    messages: [
+      { role: "system", content: "You are a helpful assistant." },
+      { role: "user", content: "Help me with {{task}}" },
+    ],
+  }),
+};
 ```
 
-- Place this at module level or in a startup function that runs once
-- Identical config values produce the same version (dedup) — safe to call on every start
-- Use the same `project_name` consistently for publishing and retrieval
+## Step 6 — Wire Up Config Retrieval
 
-### Retrieve at runtime
+The primary entry point is `get_or_create_config` / `getOrCreateConfig`. Call it inside a tracked function, passing `fallback` as the local defaults. **Do not call `create_config` or `set_config_env` in application code** — those are admin/ops methods, not part of the normal agent runtime path.
 
-Inside the entrypoint function, call `get_agent_config()`:
+### Python
 
 ```python
-@opik.track(entrypoint=True, project_name="<project-name>")
+import opik
+
+client = opik.Opik()
+
+@opik.track(project_name="<project-name>")
 def run_agent(question: str) -> str:
-    cfg = client.get_agent_config(
-        fallback=DEFAULT_AGENT_CONFIG,
+    cfg = client.get_or_create_config(
+        fallback=DEFAULT_CONFIG,
         project_name="<project-name>",
     )
     # Use cfg.model, cfg.temperature, cfg.system_prompt, etc.
     ...
 ```
 
-**CRITICAL**: `get_agent_config()` **must** be called inside a `@opik.track`-decorated function. It raises an error otherwise.
+**How it works:**
+- On first call when no config exists in the project, auto-creates one from `fallback` and returns it.
+- On subsequent calls, returns the latest version tagged `"prod"` in the Opik UI.
+- On backend failure, returns `fallback` with `is_fallback=True` (never breaks the agent).
+
+**CRITICAL**: `get_or_create_config()` **must** be called inside a `@opik.track`-decorated function.
+
+### TypeScript
+
+```typescript
+import { Opik, track } from "opik";
+
+const client = new Opik();
+
+const runAgent = track({ projectName: "<project-name>" }, async (question: string) => {
+  const cfg = await client.getOrCreateConfig<AgentConfig>({
+    fallback: DEFAULT_CONFIG,
+    projectName: "<project-name>",
+  });
+  // Use cfg.model, cfg.temperature, etc.
+  ...
+});
+```
+
+**How it works:**
+- On first call when no config exists in the project, auto-creates one from `fallback` and returns it.
+- On subsequent calls, returns the latest version tagged `"prod"` in the Opik UI.
+- On backend failure, returns `fallback` with `isFallback: true` (never breaks the agent).
+
+**CRITICAL**: `getOrCreateConfig()` **must** be called inside a `track()`-wrapped function.
 
 ### Update all call sites
 
@@ -181,12 +251,16 @@ Replace every reference to the old hardcoded values or old config object with th
 
 ## Step 7 — Ensure Minimum Tracing is in Place
 
-`get_agent_config()` requires `@opik.track` on the calling function. If the codebase isn't already instrumented:
+`get_or_create_config()` requires `@opik.track` on the calling function. If the codebase isn't already instrumented:
 
 1. Add `import opik` to the entrypoint file
 2. Add `@opik.track(entrypoint=True, project_name="<project-name>")` to the main agent function
 3. If it's a script (not a long-running server), add `opik.flush_tracker()` after the top-level call
 4. You do NOT need to instrument every function — just the entrypoint is sufficient for agent config to work. If the user wants full tracing, they should run `/instrument`.
+
+For TypeScript:
+1. Import `{ track }` from `"opik"`
+2. Wrap the entrypoint with `track({ projectName: "<project-name>" }, async (...) => { ... })`
 
 ## Step 8 — Environment Config
 
@@ -228,27 +302,28 @@ npm install opik
 
 After adding agent configuration, audit:
 
-- [ ] All tunable parameters (models, temperatures, prompts, token limits) are in the `AgentConfig` class
-- [ ] `AgentConfig` fields use `Annotated` type hints with descriptions
-- [ ] Prompt fields use `opik.Prompt` (not plain strings)
-- [ ] `DEFAULT_AGENT_CONFIG` instance has sensible defaults matching the original values
-- [ ] `create_agent_config_version()` is called at startup
-- [ ] `get_agent_config()` is called inside a `@opik.track`-decorated function
+- [ ] All tunable parameters (models, temperatures, prompts, token limits) are in the `Config` subclass (Python) or fallback object (TypeScript)
+- [ ] String-based prompt fields use `opik.Prompt` / `Prompt`; multi-turn chat fields use `opik.ChatPrompt` / `ChatPrompt` — not plain strings
+- [ ] `DEFAULT_CONFIG` instance has sensible defaults matching the original values
+- [ ] `get_or_create_config()` / `getOrCreateConfig()` is called inside a tracked function, passing `fallback=DEFAULT_CONFIG`
 - [ ] All call sites reference `cfg.*` instead of hardcoded values
-- [ ] The entrypoint has `@opik.track(entrypoint=True)`
-- [ ] Script entrypoints call `opik.flush_tracker()` before exit
+- [ ] The entrypoint has `@opik.track` (Python) or `track()` wrapper (TypeScript)
+- [ ] Script entrypoints call `opik.flush_tracker()` / `client.flush()` before exit
 - [ ] No hardcoded API keys were introduced
-- [ ] `project_name` is consistent across `@opik.track`, `create_agent_config_version`, and `get_agent_config`
+- [ ] `project_name` is consistent across `@opik.track` and `get_or_create_config`
+- [ ] `create_config` and `set_config_env` are NOT present in application code (these are ops-only)
 
 ## Anti-Patterns to Avoid
 
-- **Skipping existing config classes**: An existing `@dataclass` or `BaseModel` with model/temperature/prompt fields MUST be migrated to `opik.AgentConfig` — not ignored.
+- **Skipping existing config classes**: An existing `@dataclass` or `BaseModel` with model/temperature/prompt fields MUST be migrated to `opik.Config` — not ignored.
 - **Leaving hardcoded values**: Every tunable parameter in LLM calls should come from the config.
-- **`get_agent_config()` outside `@opik.track`**: This will raise an error at runtime. Always call it inside a decorated function.
-- **Inconsistent `project_name`**: Use the same project name in `@opik.track`, `create_agent_config_version`, and `get_agent_config`.
-- **Plain string prompts**: Use `opik.Prompt` for prompt fields so they get versioning and template support.
-- **Missing `fallback`**: Always pass `fallback=DEFAULT_AGENT_CONFIG` to `get_agent_config()` so the agent works even without a UI-published config.
-- **Defaults on class fields**: Put defaults in the `DEFAULT_*` instance, not on the class field definitions.
+- **`get_or_create_config()` outside a tracked function**: This will raise an error at runtime. Always call it inside a `@opik.track`-decorated function (Python) or `track()` wrapper (TypeScript).
+- **Calling `create_config` in application code**: Application code should only call `get_or_create_config`. `create_config` is for admin scripts or CI pipelines that explicitly push new config versions — not for agents.
+- **Calling `set_config_env` in application code**: Environment tags are managed in the Opik UI or by ops tooling, not by the agent itself.
+- **Inconsistent `project_name`**: Use the same project name in `@opik.track` and `get_or_create_config`.
+- **Plain string prompts**: Use `opik.Prompt` / `Prompt` for string-based prompt fields and `opik.ChatPrompt` / `ChatPrompt` for multi-turn message templates — not plain strings.
+- **Missing `fallback`**: Always pass `fallback=DEFAULT_CONFIG` to `get_or_create_config()` so the agent works even without a UI-published config and on backend errors.
+- **Defaults on class fields**: Put defaults in the `DEFAULT_CONFIG` instance, not on the class field definitions.
 
 ## References
 
