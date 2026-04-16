@@ -71,50 +71,56 @@ Then pair with: `opik connect --pair <CODE> python3 app.py`
 
 ### Agent Configuration Pattern
 
-Externalize hardcoded config values into an `opik.AgentConfig` subclass and retrieve at runtime:
+Externalize hardcoded config values into an `opik.Config` subclass and retrieve at runtime:
 
 ```python
-from typing import Annotated
 import opik
 
-class AgentConfig(opik.AgentConfig):
-    model: Annotated[str, "LLM model to use"]
-    temperature: Annotated[float, "Sampling temperature"]
-    system_prompt: Annotated[str, "System prompt"]
-    max_tokens: Annotated[int, "Maximum tokens"]
+class AgentConfig(opik.Config):
+    model: str
+    temperature: float
+    system_prompt: opik.Prompt
+    max_tokens: int
+
+DEFAULT_CONFIG = AgentConfig(
+    model="gpt-4o",
+    temperature=0.7,
+    system_prompt=opik.Prompt(
+        name="agent-system-prompt",
+        project_name="my-agent",
+        prompt="You are a helpful assistant.",
+    ),
+    max_tokens=1024,
+)
 
 client = opik.Opik()
-
-# Publish config
-config = AgentConfig(model="gpt-4o", temperature=0.7,
-                     system_prompt="You are a helpful assistant.", max_tokens=1024)
-client.create_agent_config_version(config, project_name="my-agent")
 
 # Retrieve at runtime — MUST be inside @opik.track
 @opik.track(entrypoint=True, project_name="my-agent")
 def run_agent(question: str) -> str:
-    cfg = client.get_agent_config(
-        fallback=AgentConfig(model="gpt-4o", temperature=0.7,
-                             system_prompt="You are a helpful assistant.", max_tokens=1024),
+    cfg = client.get_or_create_config(
+        fallback=DEFAULT_CONFIG,
         project_name="my-agent",
-        # optional: latest=True | env="staging" | version="v1_abc" (default: prod)
+        # optional: env="staging" | version="v1" | version="latest" (default: prod)
     )
     response = openai_client.chat.completions.create(
         model=cfg.model, temperature=cfg.temperature, max_tokens=cfg.max_tokens,
-        messages=[{"role": "system", "content": cfg.system_prompt},
+        messages=[{"role": "system", "content": cfg.system_prompt.format()},
                   {"role": "user", "content": question}],
     )
     return response.choices[0].message.content
 ```
 
-**Important:** `get_agent_config()` must be called inside a `@opik.track`-decorated function. Accessing any field injects `agent_configuration` metadata into the current trace.
+**Important:** `get_or_create_config()` must be called inside a `@opik.track`-decorated function. On first call with no existing config, auto-creates from `fallback`. On backend failure, returns `fallback` with `is_fallback=True`.
+
+**`project_name` is required** on `opik.Prompt` and `opik.ChatPrompt` and must exactly match the `project_name` used in `@opik.track` and `get_or_create_config`. If `get_or_create_config` fails reporting that fields reference the wrong project, this mismatch is the most likely cause.
 
 **Selectors** (optional — defaults to prod if omitted):
-- `latest=True` — most recently published version (useful during development)
 - `env="staging"` — version tagged with the given environment
-- `version="v1_abc"` — specific version by name
+- `version="v1"` — specific version by name
+- `version="latest"` — most recently published version (useful during development)
 
-**Deploy to environment:** `cfg.deploy_to("prod")` — can be called outside `@opik.track`
+**Deploy to environment:** `client.set_config_env(version="v1", env="prod")` — admin/ops only, not for application code
 
 ### Thread ID for Conversational Agents
 

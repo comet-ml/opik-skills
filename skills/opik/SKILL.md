@@ -1,6 +1,6 @@
 ---
 name: opik
-description: Opik observability for LLM agents — Agent Configuration, Local Runner (opik connect), Evaluation Suites, threads, integrations. Use for "configure my agent", "connect my agent", "evaluate my agent" or "integrate with Opik".
+description: Opik observability for LLM agents — Agent Configuration, Local Runner (opik connect), Test Suites, threads, integrations. Use for "configure my agent", "connect my agent", "evaluate my agent" or "integrate with Opik".
 ---
 
 # Opik — Observability for LLM Agents
@@ -9,7 +9,7 @@ Integrating with Opik always means adding all three components unless the user e
 
 1. **Tracing** — instrument LLM calls with the appropriate integration or `@opik.track`
 2. **Entrypoint** — mark the top-level function with `entrypoint=True` for Local Runner and UI integration
-3. **Agent Configuration** — externalize all tunable parameters into `AgentConfig`: model names, temperatures, top_p, max_tokens, all prompts and prompt templates, and any other runtime parameters the user may want to compare or optimize
+3. **Agent Configuration** — externalize all tunable parameters into `opik.Config`: model names, temperatures, top_p, max_tokens, all prompts and prompt templates, and any other runtime parameters the user may want to compare or optimize
 
 ## Setup
 
@@ -206,11 +206,11 @@ Thread metrics:
 ```python
 from opik.evaluation import evaluate_threads
 from opik.evaluation.metrics.conversation import (
-    SessionCompletenessMetric, UserFrustrationMetric, ConversationalCoherenceMetric,
+    SessionCompletenessQuality, UserFrustrationMetric, ConversationalCoherenceMetric,
 )
 
 results = evaluate_threads(project_name="chat-agent", metrics=[
-    SessionCompletenessMetric(), UserFrustrationMetric(), ConversationalCoherenceMetric(),
+    SessionCompletenessQuality(), UserFrustrationMetric(), ConversationalCoherenceMetric(),
 ])
 ```
 
@@ -222,52 +222,39 @@ Use for chat agents, support bots, multi-step assistants. Skip for single-shot a
 
 Externalize the parts of your agent you expect to tune over time into versioned, immutable config snapshots. This includes prompts, models, temperatures, token limits, and other runtime parameters you may want to compare, optimize, or roll out gradually.
 
-**CRITICAL — Search for existing config classes first.** Before creating a new `AgentConfig`, search the codebase for existing classes that hold tunable parameters (model names, temperatures, prompts, token limits, etc.). Look for names like `AgentConfig`, `Config`, `Settings`, `AgentSettings`, `ModelConfig`, or any `@dataclass`/Pydantic model with fields like `model`, `temperature`, `system_prompt`, `max_tokens`. **An existing config class is a migration target, not a reason to skip this step.** If found, convert it to inherit from `opik.AgentConfig`:
+**CRITICAL — Search for existing config classes first.** Before creating a new config, search the codebase for existing classes that hold tunable parameters (model names, temperatures, prompts, token limits, etc.). Look for names like `AgentConfig`, `Config`, `Settings`, `AgentSettings`, `ModelConfig`, or any `@dataclass`/Pydantic model with fields like `model`, `temperature`, `system_prompt`, `max_tokens`. **An existing config class is a migration target, not a reason to skip this step.** If found, convert it to inherit from `opik.Config`:
 
-1. Replace the existing base (`@dataclass`, `BaseModel`, plain class) with `opik.AgentConfig`
-2. Add `Annotated` type hints with descriptions to each field
-3. Convert plain `str` prompt fields to `opik.Prompt`
-4. Wire up `client.create_agent_config_version()` at startup and `client.get_agent_config()` inside the entrypoint
-5. Update all call sites that reference the old config to use the new Opik-managed config
+1. Replace the existing base (`@dataclass`, `BaseModel`, plain class) with `opik.Config`
+2. Convert plain `str` prompt fields to `opik.Prompt`
+3. Wire up `get_or_create_config()` inside the entrypoint
+4. Update all call sites that reference the old config to use the new Opik-managed config
 
 ```python
-from typing import Annotated
 import opik
 
-class AgentConfig(opik.AgentConfig):
-    model: Annotated[str, "LLM model"]             # NO defaults
-    temperature: Annotated[float, "Sampling temperature"]
-    system_prompt: Annotated[opik.Prompt, "Managed system prompt"]
+class AgentConfig(opik.Config):
+    model: str
+    temperature: float
+    system_prompt: opik.Prompt
 
-DEFAULT_AGENT_CONFIG = AgentConfig(
+DEFAULT_CONFIG = AgentConfig(
     model="gpt-4o",
     temperature=0.7,
     system_prompt=opik.Prompt(
         name="agent-system-prompt",
+        project_name="my-agent",
         prompt="You are a helpful assistant for {{product}}.",
     ),
 )
 
 client = opik.Opik()
-client.create_agent_config_version(
-    AgentConfig(
-        model="gpt-4o",
-        temperature=0.7,
-        system_prompt=opik.Prompt(
-            name="agent-system-prompt",
-            prompt="You are a helpful assistant for {{product}}.",
-        ),
-    ),
-    project_name="my-agent",
-)
-# Identical values → same version (dedup). Different values → new version.
 
 @opik.track(entrypoint=True, project_name="my-agent")
 def run_agent(question: str) -> str:
-    cfg = client.get_agent_config(
-        fallback=DEFAULT_AGENT_CONFIG,
+    cfg = client.get_or_create_config(
+        fallback=DEFAULT_CONFIG,
         project_name="my-agent",
-        # optional: latest=True | env="staging" | version="v1" (default: prod)
+        # optional: env="staging" | version="v1" | version="latest" (default: prod)
     )
     return llm_call(
         model=cfg.model,
@@ -277,9 +264,11 @@ def run_agent(question: str) -> str:
     )
 ```
 
-- `get_agent_config()` **must** be inside `@opik.track` — raises error otherwise
-- Deploy: `cfg.deploy_to("prod")` — tags a version with an environment
-- Prompt fields: use `Prompt` (from `opik.api_objects.prompt.text.prompt`) / `ChatPrompt` (from `opik.api_objects.prompt.chat.chat_prompt`) typed config fields for managed prompts
+- `get_or_create_config()` **must** be inside `@opik.track` — raises error otherwise
+- On first call with no existing config, auto-creates from `fallback` and returns it
+- On backend failure, returns `fallback` with `is_fallback=True` (never breaks the agent)
+- Deploy to environment: `client.set_config_env(version="v1", env="prod")` — admin/ops only
+- Prompt fields: use `opik.Prompt` for string-based templates, `opik.ChatPrompt` for multi-turn message templates; `project_name` is required on both and must match the `project_name` in `@opik.track` and `get_or_create_config`
 - **Extract:** model, temperature, top_p, max_tokens, system prompt, tunable params
 - **Don't extract:** API keys, structural logic, true constants
 
@@ -304,17 +293,18 @@ After pairing: entrypoint registered as agent, UI shows input form, jobs from UI
 | No entrypoint found | Add `entrypoint=True` (Python) or `entrypoint: true` (TS) |
 | Invalid pair code | Codes expire — get a new one |
 | Connection refused | Check Opik server (OSS) or API key (Cloud) |
+| `get_or_create_config` fails saying some fields reference the wrong project | The `project_name` on one or more `opik.Prompt` / `opik.ChatPrompt` fields doesn't match the `project_name` passed to `get_or_create_config` — make them consistent |
 
 
 ## Anti-Patterns
 
 | Anti-Pattern | Fix |
 |-------------|-----|
-| Existing config class left unconverted (e.g., `@dataclass` with model/temperature/prompt fields) | Convert to `opik.AgentConfig` subclass — an existing config is a migration target, not a skip signal |
-| Hardcoded config | Use `AgentConfig` + `get_agent_config()` |
+| Existing config class left unconverted (e.g., `@dataclass` with model/temperature/prompt fields) | Convert to `opik.Config` subclass — an existing config is a migration target, not a skip signal |
+| Hardcoded config | Use `opik.Config` + `get_or_create_config()` |
 | Missing entrypoint | Add `entrypoint=True` for Local Runner |
 | No thread_id on conversational agent | Wire `thread_id` from session ID |
-| `get_agent_config()` outside `@track` | Must be inside decorated function |
+| `get_or_create_config()` outside `@track` | Must be inside decorated function |
 | TS missing `params` | Add explicit `params` array |
 | Missing `flush_tracker()` in scripts | Call before exit |
 
@@ -327,4 +317,4 @@ After pairing: entrypoint registered as agent, UI shows input form, jobs from UI
 | REST API | `references/tracing-rest-api.md` |
 | All integrations | `references/integrations.md` |
 | Core concepts (traces, spans, threads, metadata) | `references/observability.md` |
-| Evaluation (suites, 41 built-in metrics, trajectory) | `references/evaluation.md` |
+| Test Suites, `run_tests()`, 60+ built-in metrics, legacy `evaluate()` | `references/evaluation.md` |

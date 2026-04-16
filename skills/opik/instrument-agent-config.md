@@ -80,6 +80,7 @@ Note what exists and what's missing — you'll fill the gaps in the following st
 **Prompt field types:**
 - Use `opik.Prompt` for single string-based system prompts or templates
 - Use `opik.ChatPrompt` for multi-turn message templates (list of `{"role": ..., "content": ...}` messages)
+- **`project_name` is required** on every `opik.Prompt` and `opik.ChatPrompt` and must exactly match the `project_name` used in `@opik.track` and `get_or_create_config` — mismatches cause config retrieval failures
 
 Example migration from a dataclass:
 
@@ -106,6 +107,7 @@ DEFAULT_CONFIG = AgentConfig(
     temperature=0.7,
     system_prompt=opik.Prompt(
         name="agent-system-prompt",
+        project_name="<project-name>",
         prompt="You are a helpful assistant.",
     ),
 )
@@ -126,6 +128,7 @@ DEFAULT_CONFIG = AgentConfig(
     temperature=0.7,
     chat_template=opik.ChatPrompt(
         name="agent-chat-template",
+        project_name="<project-name>",
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": "Help me with {{task}}"},
@@ -151,6 +154,7 @@ DEFAULT_CONFIG = AgentConfig(
     temperature=0.7,
     system_prompt=opik.Prompt(
         name="agent-system-prompt",
+        project_name="<project-name>",
         prompt="You are a helpful assistant for {{product}}.",
     ),
 )
@@ -330,5 +334,5 @@ After adding agent configuration, audit:
 For detailed API signatures and advanced patterns, see:
 - `../opik/references/tracing-python.md` — Python SDK reference
 - `../opik/references/tracing-typescript.md` — TypeScript SDK reference
-- `../opik/references/integrations.md` — All 40+ framework integrations
+- `../opik/references/integrations.md` — All framework integrations
 - `../opik/references/observability.md` — Core concepts (traces, spans, threads)
