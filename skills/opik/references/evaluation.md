@@ -42,7 +42,7 @@ suite.insert([
 # Run the suite
 results = opik.run_tests(
     test_suite=suite,
-    task=lambda item: {"output": my_agent(item["input"])},
+    task=lambda item: {"input": item["input"], "output": my_agent(item["input"])},
     model="gpt-4o",
 )
 
@@ -74,7 +74,7 @@ await suite.insert([
 
 const results = await runTests({
   testSuite: suite,
-  task: async (item) => ({ input: item.input, output: await myAgent(item.input as string) }),
+  task: async (item) => ({ input: item.input as string, output: await myAgent(item.input as string) }),
   model: "gpt-4o",
 });
 
