@@ -330,5 +330,5 @@ After adding agent configuration, audit:
 For detailed API signatures and advanced patterns, see:
 - `../opik/references/tracing-python.md` — Python SDK reference
 - `../opik/references/tracing-typescript.md` — TypeScript SDK reference
-- `../opik/references/integrations.md` — All 40+ framework integrations
+- `../opik/references/integrations.md` — All framework integrations
 - `../opik/references/observability.md` — Core concepts (traces, spans, threads)

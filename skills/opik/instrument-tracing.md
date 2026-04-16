@@ -207,5 +207,5 @@ After instrumentation, do a quick audit:
 For detailed API signatures and advanced patterns, see:
 - `references/tracing-python.md` — Python SDK reference
 - `references/tracing-typescript.md` — TypeScript SDK reference
-- `references/integrations.md` — All 40+ framework integrations
+- `references/integrations.md` — All framework integrations
 - `references/observability.md` — Core concepts (traces, spans, threads)

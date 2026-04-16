@@ -32,7 +32,7 @@ After install, your agent can help with tasks like:
 - wiring up framework integrations instead of manual instrumentation
 - configuring and using `AgentConfig` blueprints
 - connecting a local agent to the Opik UI with `opik connect`
-- creating and running Evaluation Suites
+- creating and running Test Suites
 - tracking multi-turn conversations with `thread_id`
 
 ## Install
@@ -49,9 +49,9 @@ This installs the `opik` skill into your local skills environment.
 | --- | --- |
 | Tracing | Python decorators, TypeScript client tracing, REST API tracing, span types |
 | Integrations | OpenAI, Anthropic, LangChain, CrewAI, DSPy, Google ADK, Vercel AI SDK, and more |
-| Agent Config | `AgentConfig`, `get_agent_config()`, environments, prompt fields |
+| Agent Config | `opik.Config`, `get_or_create_config()`, environments, prompt fields |
 | Local Runner | `opik connect`, pairing flow, entrypoint requirements, troubleshooting |
-| Evaluation | Evaluation Suites, assertions, execution policies, CI-style checks |
+| Evaluation | Test Suites, `run_tests()`, assertions, execution policies, CI gating |
 | Conversations | `thread_id`, conversation metrics, common pitfalls |
 | Observability | trace boundaries, metadata, feedback scores, distributed tracing |
 
@@ -76,7 +76,7 @@ Once installed, you can ask your agent things like:
 - "Instrument this TypeScript OpenAI app with Opik."
 - "Help me connect this local agent to Opik with `opik connect`."
 - "Move these hardcoded model settings into `AgentConfig`."
-- "Create an Evaluation Suite for this chatbot."
+- "Create a Test Suite for this chatbot."
 - "Add `thread_id` support so Opik groups each conversation correctly."
 
 ## Repository structure

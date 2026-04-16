@@ -12,44 +12,81 @@ Manual review of LLM outputs doesn't scale. Opik's evaluation platform automates
 
 ## Core Concepts
 
-### Evaluation Suites (Opik 2.0)
+### Test Suites (Recommended)
 
-An **Evaluation Suite** is the primary way to test agents in Opik 2.0. It combines test items with assertions and execution policies.
+A **Test Suite** is the recommended way to test agents in Opik. It combines test items with assertions and execution policies.
+
+**Python:**
 
 ```python
-from opik import Opik
+import opik
 
-client = Opik()
-suite = client.get_or_create_evaluation_suite(
+client = opik.Opik()
+suite = client.get_or_create_test_suite(
     name="my-agent-suite",
-    assertions=[
+    global_assertions=[
         "Response is factually accurate and not hallucinated",
         "Response is professional in tone",
     ],
-    execution_policy={"runs_per_item": 3, "pass_threshold": 2},
+    global_execution_policy={"runs_per_item": 3, "pass_threshold": 2},
 )
 
 # Add items with item-level assertions (in addition to suite-level)
-suite.add_item(
-    data={"input": "What is the capital of France?"},
-    assertions=["Response correctly identifies Paris as the capital"],
-)
+suite.insert([
+    {
+        "data": {"input": "What is the capital of France?"},
+        "assertions": ["Response correctly identifies Paris as the capital"],
+    },
+])
 
 # Run the suite
-results = suite.run(
+results = opik.run_tests(
+    test_suite=suite,
     task=lambda item: {"output": my_agent(item["input"])},
     model="gpt-4o",
 )
 
 # CI gate
-assert results.all_passed
+assert results.all_items_passed
 ```
 
-**Key differences from old Datasets API:**
+**TypeScript:**
+
+```typescript
+import { Opik, runTests } from "opik";
+
+const client = new Opik();
+const suite = await client.getOrCreateTestSuite({
+  name: "my-agent-suite",
+  globalAssertions: [
+    "Response is factually accurate and not hallucinated",
+    "Response is professional in tone",
+  ],
+  globalExecutionPolicy: { runsPerItem: 3, passThreshold: 2 },
+});
+
+await suite.insert([
+  {
+    data: { input: "What is the capital of France?" },
+    assertions: ["Response correctly identifies Paris as the capital"],
+  },
+]);
+
+const results = await runTests({
+  testSuite: suite,
+  task: async (item) => ({ input: item.input, output: await myAgent(item.input as string) }),
+  model: "gpt-4o",
+});
+
+if (!results.allItemsPassed) process.exit(1);
+```
+
+**Key differences from Datasets API:**
 - Assertions are plain strings checked by an LLM judge
-- Execution policies support multi-run reliability testing (`runs_per_item`, `pass_threshold`)
+- Execution policies support multi-run reliability testing (`runs_per_item` / `runsPerItem`, `pass_threshold` / `passThreshold`)
 - Item-level assertion overrides for high-stakes items
-- Suites appear under "Evaluation Suites" in the UI sidebar (NOT "Datasets")
+- Automatic immutable versioning on every change
+- Suites appear under "Test Suites" in the UI sidebar (NOT "Datasets")
 
 ### Datasets (Legacy, Still Supported)
 
@@ -75,7 +112,7 @@ For conversational agents, evaluate entire threads (multi-turn conversations):
 ```python
 from opik.evaluation import evaluate_threads
 from opik.evaluation.metrics.conversation import (
-    SessionCompletenessMetric,
+    SessionCompletenessQuality,
     UserFrustrationMetric,
     ConversationalCoherenceMetric,
 )
@@ -83,7 +120,7 @@ from opik.evaluation.metrics.conversation import (
 results = evaluate_threads(
     project_name="chat-agent",
     metrics=[
-        SessionCompletenessMetric(),
+        SessionCompletenessQuality(),
         UserFrustrationMetric(),
         ConversationalCoherenceMetric(),
     ],
@@ -93,7 +130,7 @@ results = evaluate_threads(
 ```
 
 Thread-level metrics:
-- **SessionCompletenessMetric** — Did the conversation reach resolution?
+- **SessionCompletenessQuality** — Did the conversation reach resolution?
 - **UserFrustrationMetric** — Did the user show signs of frustration?
 - **ConversationalCoherenceMetric** — Did the agent maintain logical consistency across turns?
 
@@ -151,14 +188,14 @@ dataset.insert_from_pandas(df)
 ### From JSONL Files
 
 ```python
-dataset.insert_from_jsonl("path/to/data.jsonl")
+dataset.read_jsonl_from_file("path/to/data.jsonl")
 ```
 
 ## Dataset Versioning
 
-Opik supports immutable dataset versions for reproducible evaluations.
+Opik automatically creates immutable versions when dataset items change.
 
-### Creating Versions
+### Querying Versions
 
 ```python
 from opik import Opik
@@ -166,36 +203,30 @@ from opik import Opik
 client = Opik()
 dataset = client.get_dataset(name="my-dataset")
 
-# Create a named version (immutable snapshot)
-version = dataset.create_version(name="v1.0")
+# Current version
+version_name = dataset.get_current_version_name()  # e.g. "v3"
+version_info = dataset.get_version_info()
 
-# List all versions
-versions = dataset.list_versions()
-for v in versions:
-    print(f"{v.name}: {v.item_count} items, created {v.created_at}")
+# Get a read-only snapshot of a specific version
+v1 = dataset.get_version_view("v1")
+v1_items = v1.get_items()
 ```
 
-### Using Specific Versions
+### Running Evaluation on a Specific Version
 
 ```python
-# Run evaluation on a specific version
+from opik.evaluation import evaluate
+from opik.evaluation.metrics import AnswerRelevance
+
+# Pin to a specific version for reproducibility
+v1 = dataset.get_version_view("v1")
 results = evaluate(
     experiment_name="test-v1",
-    dataset=dataset,
-    dataset_version="v1.0",  # Pin to specific version
+    dataset=v1,
     task=evaluation_task,
     scoring_metrics=[AnswerRelevance()]
 )
 ```
-
-### Version History
-
-In the UI:
-1. Go to dataset details
-2. Click "Versions" tab
-3. View version history with timestamps
-4. Compare versions side-by-side
-5. Restore or duplicate from any version
 
 ## AI Expansion (Synthetic Data)
 
@@ -212,23 +243,6 @@ In the Opik UI:
    - Diversity settings
    - Topic constraints
 5. Review and approve generated items
-
-### Programmatic Expansion
-
-```python
-from opik import Opik
-
-client = Opik()
-dataset = client.get_dataset(name="my-dataset")
-
-# Generate synthetic variations
-dataset.expand(
-    num_items=50,
-    seed_items=dataset.get_items()[:5],  # Use 5 examples as seeds
-    diversity="high",
-    model="gpt-4"
-)
-```
 
 ## OQL: Opik Query Language
 
@@ -270,12 +284,12 @@ score > 0.9 OR model = "gpt-4"
 # Filter traces
 traces = client.search_traces(
     project_name="production",
-    filter='score > 0.7 AND metadata.user_type = "premium"'
+    filter_string='score > 0.7 AND metadata.user_type = "premium"'
 )
 
 # Filter dataset items
 items = dataset.get_items(
-    filter='input contains "error" AND expected_output exists'
+    filter_string='input contains "error" AND expected_output exists'
 )
 ```
 
@@ -294,36 +308,29 @@ In the Opik UI:
    - Annotation schema (scores, labels, free text)
    - Assignees
 
-### Annotation Schema
-
-Define what reviewers evaluate:
+### Creating Queues via SDK
 
 ```python
 from opik import Opik
 
 client = Opik()
 
-# Create annotation queue
-queue = client.create_annotation_queue(
+# Traces annotation queue
+queue = client.create_traces_annotation_queue(
     name="quality-review",
     project_name="production",
-    schema={
-        "scores": [
-            {"name": "accuracy", "type": "numeric", "min": 0, "max": 5},
-            {"name": "helpfulness", "type": "numeric", "min": 0, "max": 5}
-        ],
-        "labels": [
-            {"name": "category", "options": ["good", "needs_work", "bad"]}
-        ],
-        "free_text": ["comments"]
-    },
-    sampling_rate=0.1  # Sample 10% of traces
+)
+
+# Threads annotation queue
+threads_queue = client.create_threads_annotation_queue(
+    name="conversation-review",
+    project_name="production",
 )
 ```
 
 ### Reviewing Items
 
-1. Go to your annotation queue
+1. Go to your annotation queue in the Opik UI
 2. Items appear based on sampling rules
 3. For each item:
    - View trace details
@@ -331,22 +338,6 @@ queue = client.create_annotation_queue(
    - Add comments
    - Submit annotation
 4. Progress is tracked per reviewer
-
-### Using Annotations
-
-```python
-# Get annotated traces
-annotated = client.search_traces(
-    project_name="production",
-    filter='annotation.queue = "quality-review" AND annotation.completed = true'
-)
-
-# Export annotations for training
-annotations = client.export_annotations(
-    queue_name="quality-review",
-    format="jsonl"
-)
-```
 
 ## Running Evaluations
 
@@ -409,9 +400,9 @@ results = evaluate(
 )
 ```
 
-## Built-in Metrics (41 Total)
+## Built-in Metrics (60+)
 
-Opik provides 41 built-in metrics organized into categories.
+Opik provides 60+ built-in metrics organized into categories.
 
 ### Heuristic Metrics
 
@@ -421,23 +412,24 @@ Deterministic, rule-based checks that don't require LLM calls:
 - `Equals` - Exact string match
 - `Contains` - Substring presence
 - `RegexMatch` - Pattern matching
-- `Levenshtein` - Edit distance
-- `BLEU` - Translation quality (n-gram overlap)
+- `LevenshteinRatio` - Edit distance ratio
+- `SentenceBLEU` / `CorpusBLEU` - Translation quality (n-gram overlap)
 - `ROUGE` - Summarization quality (recall-oriented)
 - `BERTScore` - Semantic similarity using embeddings
+- `ChrF` - Character n-gram F-score
+- `GLEU` - Google's BLEU variant
+- `METEOR` - Metric for Evaluation of Translation with Explicit Ordering
 
-**Validation:**
+**Validation & Analysis:**
 - `IsJson` - Valid JSON check
-- `JsonSchemaMatch` - Validates against JSON schema
-- `Sentiment` - Sentiment analysis (-1 to 1)
+- `StructuredOutputCompliance` - Validates structured output format
+- `Sentiment` / `VADERSentiment` - Sentiment analysis
+- `Readability` - Text readability score
+- `Tone` - Tone analysis
 
-### Conversation Heuristic Metrics
-
-For multi-turn conversation analysis:
-
-- `ConversationCoherence` - Flow between turns
-- `TopicDrift` - Measures topic consistency
-- `ResponseLatency` - Tracks response timing patterns
+**Statistical:**
+- `SpearmanRanking` - Rank correlation
+- `JSDistance` / `JSDivergence` / `KLDivergence` - Distribution divergence metrics
 
 ### LLM-as-Judge Metrics
 
@@ -447,32 +439,50 @@ Use an LLM to evaluate semantic quality:
 - `AnswerRelevance` - Does the answer address the question?
 - `Hallucination` - Are there unsupported claims?
 - `Usefulness` - How useful is the response?
-- `MeaningMatch` - Semantic equivalence
 - `Moderation` - Safety and policy violations
-- `GEval` - Configurable custom criteria
+- `GEval` - Configurable custom criteria (with `GEvalPreset` for common scenarios)
+- `PromptInjection` - Detect prompt injection attempts
+- `LanguageAdherenceMetric` - Does the response stay in the correct language?
 
 **RAG-Specific:**
 - `ContextPrecision` - Is only relevant context used?
 - `ContextRecall` - Is all relevant context used?
-- `Faithfulness` - Does output align with provided context?
 
-### Conversation LLM Metrics
+**Bias Detection:**
+- `GenderBiasJudge`, `PoliticalBiasJudge`, `RegionalBiasJudge`, `ReligiousBiasJudge`, `DemographicBiasJudge`
+
+**Compliance & Summarization:**
+- `ComplianceRiskJudge` - Regulatory compliance assessment
+- `SummarizationCoherenceJudge` - Summary coherence
+- `SummarizationConsistencyJudge` - Summary consistency with source
+
+### Conversation Metrics
 
 For evaluating chat and dialogue quality:
 
-- `ConversationQuality` - Overall conversation effectiveness
-- `ResponseAppropriate` - Is the response fitting for the context?
-- `TurnCoherence` - Logical connection between turns
+- `ConversationalCoherenceMetric` - Logical consistency across turns
+- `ConversationQARelevanceMetric` - Relevance in Q&A conversations
+- `ConversationDialogueHelpfulnessMetric` - Dialogue helpfulness
+- `ConversationPromptUncertaintyMetric` - Uncertainty detection
+- `ConversationSummarizationCoherenceMetric` / `ConversationSummarizationConsistencyMetric`
+- `ConversationComplianceRiskMetric` - Compliance risk in conversations
+- `ConversationDegenerationMetric` - Conversation quality degradation
+- `KnowledgeRetentionMetric` - Information retention across turns
+- `SessionCompletenessQuality` - Session completion quality
+- `UserFrustrationMetric` - User frustration detection
 
 ### Agent-Specific Metrics
 
 For evaluating agentic behavior:
 
-- `AgentTaskCompletion` - Did the agent complete its task?
-- `AgentToolCorrectness` - Were tools used correctly?
+- `AgentTaskCompletionJudge` - Did the agent complete its task?
+- `AgentToolCorrectnessJudge` - Were tools used correctly?
 - `TrajectoryAccuracy` - Did the agent follow expected steps?
-- `PlanningQuality` - Quality of agent's planning
-- `ToolSelectionAccuracy` - Did agent pick appropriate tools?
+- `SycEval` - Sycophancy evaluation
+
+### Custom LLM Judge
+
+- `LLMJuriesJudge` - Create custom multi-judge evaluation panels
 
 ## Using Metrics
 
@@ -525,11 +535,12 @@ metric = GEval(
 Create your own metrics:
 
 ```python
-from opik.evaluation.metrics import BaseMetric, ScoreResult
+from opik.evaluation.metrics import BaseMetric
+from opik.evaluation.metrics.score_result import ScoreResult
 
 class ResponseLengthMetric(BaseMetric):
     def __init__(self, min_length: int = 50, max_length: int = 500):
-        self.name = "response_length"
+        super().__init__(name="response_length")
         self.min_length = min_length
         self.max_length = max_length
 
@@ -623,7 +634,7 @@ In the Opik UI:
 - Moderation
 - Custom LLM-as-Judge rules
 
-## TypeScript Evaluation
+## TypeScript Evaluation (Datasets)
 
 ```typescript
 import { Opik, evaluate, Hallucination } from "opik";
@@ -641,6 +652,8 @@ const results = await evaluate({
   scoringMetrics: [new Hallucination({ model: "gpt-4o" })]
 });
 ```
+
+For Test Suite-based evaluation in TypeScript, see the Test Suites section above.
 
 ## Troubleshooting
 

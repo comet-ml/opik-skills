@@ -147,7 +147,7 @@ Add `import opik` at the top of each file you instrument.
 | Other helper in the call chain | `@opik.track` |
 
 - **Entrypoint parameters must be primitives only** (`str`, `int`, `float`, `bool`, `list`, `dict`). If the natural entrypoint takes a complex type, create a wrapper — see Step 3 "Entrypoint Parameter Rules".
-- **Config access must happen inside `@opik.track`**: Any call to `client.get_agent_config()` and subsequent access of config fields must occur inside a `@opik.track`-decorated function, or in a function called downstream from one. This is how Opik injects `agent_configuration` metadata into the current trace. Calling it at module level or outside the traced call stack will raise an error.
+- **Config access must happen inside `@opik.track`**: Any call to `client.get_or_create_config()` and subsequent access of config fields must occur inside a `@opik.track`-decorated function, or in a function called downstream from one. This is how Opik injects config metadata into the current trace. Calling it at module level or outside the traced call stack will raise an error.
 - Place the decorator **above** any existing decorators (e.g., above `@app.route`)
 - For async functions, `@opik.track` works the same way — no changes needed
 - If the function is a **script entrypoint** (not a long-running server), add `opik.flush_tracker()` after the top-level call
@@ -240,7 +240,7 @@ After instrumentation, do a quick audit:
 - [ ] Every LLM call site is traced (via integration wrapper or `@opik.track`)
 - [ ] Exactly one function has `entrypoint=True`
 - [ ] The entrypoint function accepts only primitive parameters (`str`, `int`, `float`, `bool`, `list`, `dict`) — no Pydantic models, dataclasses, or custom classes
-- [ ] All `get_agent_config()` calls and config field access happen inside `@opik.track`-decorated functions (or downstream from one)
+- [ ] All `get_or_create_config()` calls and config field access happen inside `@opik.track`-decorated functions (or downstream from one)
 - [ ] Script entrypoints call `opik.flush_tracker()` (Python) or `await client.flush()` (TypeScript)
 - [ ] LiteLLM calls inside `@opik.track` pass `current_span_data` via metadata
 - [ ] No hardcoded API keys were introduced
@@ -251,7 +251,7 @@ After instrumentation, do a quick audit:
 - **Double-wrapping**: Don't add `@opik.track(type="llm")` to a function that already uses a framework integration (e.g., `track_openai`). The integration handles tracing.
 - **Orphaned LiteLLM traces**: Always pass `current_span_data` when `OpikLogger` is used inside `@opik.track` code.
 - **Complex entrypoint parameters**: The entrypoint function must only accept primitives (`str`, `int`, `float`, `bool`, `list`, `dict`). Pydantic models, dataclasses, or custom classes can't be typed into a UI input field. If the natural entrypoint takes a complex type, create a thin wrapper that accepts primitives.
-- **Config access outside `@opik.track`**: `get_agent_config()` and config field reads must happen inside a `@opik.track`-decorated function or downstream from one. Module-level or untraced calls will fail and won't attach config metadata to the trace.
+- **Config access outside `@opik.track`**: `get_or_create_config()` and config field reads must happen inside a `@opik.track`-decorated function or downstream from one. Module-level or untraced calls will fail and won't attach config metadata to the trace.
 - **Missing entrypoint**: Without `entrypoint=True`, Local Runner (`opik connect`) won't discover the agent.
 - **Missing flush**: Scripts that exit without flushing lose trace data.
 - **Overwriting config**: Check before writing to `.env` or `~/.opik.config`.
@@ -261,5 +261,5 @@ After instrumentation, do a quick audit:
 For detailed API signatures and advanced patterns, see:
 - `../opik/references/tracing-python.md` — Python SDK reference
 - `../opik/references/tracing-typescript.md` — TypeScript SDK reference
-- `../opik/references/integrations.md` — All 40+ framework integrations
+- `../opik/references/integrations.md` — All framework integrations
 - `../opik/references/observability.md` — Core concepts (traces, spans, threads)
