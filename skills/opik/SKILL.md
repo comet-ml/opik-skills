@@ -242,6 +242,7 @@ DEFAULT_CONFIG = AgentConfig(
     temperature=0.7,
     system_prompt=opik.Prompt(
         name="agent-system-prompt",
+        project_name="my-agent",
         prompt="You are a helpful assistant for {{product}}.",
     ),
 )
@@ -267,7 +268,7 @@ def run_agent(question: str) -> str:
 - On first call with no existing config, auto-creates from `fallback` and returns it
 - On backend failure, returns `fallback` with `is_fallback=True` (never breaks the agent)
 - Deploy to environment: `client.set_config_env(version="v1", env="prod")` — admin/ops only
-- Prompt fields: use `opik.Prompt` for string-based templates, `opik.ChatPrompt` for multi-turn message templates
+- Prompt fields: use `opik.Prompt` for string-based templates, `opik.ChatPrompt` for multi-turn message templates; `project_name` is required on both and must match the `project_name` in `@opik.track` and `get_or_create_config`
 - **Extract:** model, temperature, top_p, max_tokens, system prompt, tunable params
 - **Don't extract:** API keys, structural logic, true constants
 
@@ -292,6 +293,7 @@ After pairing: entrypoint registered as agent, UI shows input form, jobs from UI
 | No entrypoint found | Add `entrypoint=True` (Python) or `entrypoint: true` (TS) |
 | Invalid pair code | Codes expire — get a new one |
 | Connection refused | Check Opik server (OSS) or API key (Cloud) |
+| `get_or_create_config` fails saying some fields reference the wrong project | The `project_name` on one or more `opik.Prompt` / `opik.ChatPrompt` fields doesn't match the `project_name` passed to `get_or_create_config` — make them consistent |
 
 
 ## Anti-Patterns

@@ -87,6 +87,7 @@ DEFAULT_CONFIG = AgentConfig(
     temperature=0.7,
     system_prompt=opik.Prompt(
         name="agent-system-prompt",
+        project_name="my-agent",
         prompt="You are a helpful assistant.",
     ),
     max_tokens=1024,
@@ -111,6 +112,8 @@ def run_agent(question: str) -> str:
 ```
 
 **Important:** `get_or_create_config()` must be called inside a `@opik.track`-decorated function. On first call with no existing config, auto-creates from `fallback`. On backend failure, returns `fallback` with `is_fallback=True`.
+
+**`project_name` is required** on `opik.Prompt` and `opik.ChatPrompt` and must exactly match the `project_name` used in `@opik.track` and `get_or_create_config`. If `get_or_create_config` fails reporting that fields reference the wrong project, this mismatch is the most likely cause.
 
 **Selectors** (optional — defaults to prod if omitted):
 - `env="staging"` — version tagged with the given environment
