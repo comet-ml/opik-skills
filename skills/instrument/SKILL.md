@@ -58,20 +58,26 @@ Read all source files identified in Step 1 **in parallel** — issue reads for e
 
 ### Entrypoint Parameter Rules
 
-The function marked with `entrypoint=True` **must only accept primitive-typed parameters**: `str`, `int`, `float`, `bool`, and `list`/`dict` of primitives. Opik reads these type hints to build an input form in the UI — complex types (Pydantic models, dataclasses, request objects) cannot be entered in a text field.
+The function marked with `entrypoint=True` **must only accept primitive-typed parameters**: `str`, `int`, `float`, `bool`, and `list`/`dict` of primitives. This is because:
+- Opik reads the function's type hints to build an **input form in the UI**
+- Users will type these values manually in a text field via the Local Runner
+- Complex types (Pydantic models, dataclasses, request objects, custom classes) cannot be entered in a UI input field
 
-**If the candidate entrypoint accepts complex types:**
-1. Look higher in the call chain for a function that already accepts primitives
-2. If none exists, create a thin wrapper that accepts only primitives, unpacks them, and calls the original function
+**If the candidate entrypoint accepts complex types** (e.g., a request model, a config object, a dataclass):
+1. **Look higher in the call chain** for a function that already accepts primitives
+2. If none exists, **create a thin wrapper function** that accepts only primitives, unpacks them, and calls the original function. Move the `entrypoint=True` decorator to this wrapper.
 
+**Example — bad entrypoint (complex parameter):**
 ```python
-# ❌ Complex parameter — cannot be entrypoint
+# ❌ DO NOT mark this as entrypoint — RecommendRequest is a Pydantic model
 @app.post("/recommend")
 async def recommend(request: RecommendRequest):
     summary, tool_results = await run_agent(user_message=build_user_message(request))
-    return RecommendResponse(...)
+    return RecommendResponse(city=request.city, recommendations=_extract_recommendations(tool_results), summary=summary)
+```
 
-# ✅ Thin wrapper with primitives — mark this as entrypoint
+**Example — good entrypoint (primitives only):**
+```python
 @opik.track(name="recommend-agent", entrypoint=True)
 async def _run_entrypoint(user_message: str) -> tuple[str, list[dict]]:
     """Opik entrypoint — receives only the user message for Local Runner schema."""
@@ -80,8 +86,10 @@ async def _run_entrypoint(user_message: str) -> tuple[str, list[dict]]:
 @app.post("/recommend")
 async def recommend(request: RecommendRequest):
     summary, tool_results = await _run_entrypoint(user_message=build_user_message(request))
-    return RecommendResponse(...)
+    return RecommendResponse(city=request.city, recommendations=_extract_recommendations(tool_results), summary=summary)
 ```
+
+The wrapper extracts the primitive values from the complex object and delegates to the existing logic. The HTTP handler calls the wrapper instead of the inner function directly, so the trace captures the full execution.
 
 ## Step 3 — Instrument Files
 
@@ -123,12 +131,16 @@ from opik.opik_context import get_current_span_data
 | Guardrail / validation | `@opik.track(type="guardrail")` |
 | Other helper in the call chain | `@opik.track` |
 
-Rules:
+- **Entrypoint parameters must be primitives only** (`str`, `int`, `float`, `bool`, `list`, `dict`). If the natural entrypoint takes a complex type, create a wrapper — see Step 2 "Entrypoint Parameter Rules".
+- **Config access must happen inside `@opik.track`**: Any call to `client.get_or_create_config()` and subsequent access of config fields must occur inside a `@opik.track`-decorated function, or in a function called downstream from one. This is how Opik injects config metadata into the current trace. Calling it at module level or outside the traced call stack will raise an error.
 - Do **not** add `@opik.track(type="llm")` to a function already wrapped by a framework integration — that would double-trace it
-- `get_or_create_config()` and config field access must happen **inside** a `@opik.track`-decorated function or downstream from one — never at module level
-- If the function is a script entrypoint (not a long-running server), add `opik.flush_tracker()` after the top-level call
+- Place the decorator **above** any existing decorators (e.g., above `@app.route`)
+- For async functions, `@opik.track` works the same way — no changes needed
+- If the function is a **script entrypoint** (not a long-running server), add `opik.flush_tracker()` after the top-level call
 
 ### TypeScript
+
+Use the client-based approach:
 
 ```typescript
 import { Opik } from "opik";
@@ -168,7 +180,7 @@ import { OpikExporter } from "opik-vercel";
 
 ## Step 4 — Conversational Agents: Add `thread_id`
 
-If the agent handles multi-turn conversations, wire `thread_id`. Skip for single-shot agents or batch processing.
+If the agent handles multi-turn conversations (chat bots, support agents, multi-step assistants), wire `thread_id`:
 
 ```python
 @opik.track(entrypoint=True)
@@ -177,18 +189,23 @@ def handle_message(session_id: str, message: str) -> str:
     return generate_response(session_id, message)
 ```
 
+Skip this for single-shot agents or batch processing.
+
 ## Step 5 — Environment Config & Install Command
 
 Run these two tasks in parallel — read all env files at once before writing any. Read `.env`, `.env.local`, `.env.example`, `.env.sample`, and `~/.opik.config` simultaneously, then apply changes only to whichever exist.
 
 **Environment config:**
-1. If the project has `.env` / `.env.local` → append `OPIK_API_KEY`, `OPIK_WORKSPACE`, `OPIK_URL_OVERRIDE` (only if missing)
+1. If the project has `.env` / `.env.local` → append `OPIK_API_KEY`, `OPIK_WORKSPACE`, `OPIK_URL_OVERRIDE` (if missing)
 2. If no `.env` exists → Python: create/update `~/.opik.config`; TypeScript: create `.env` or `.env.local`
-3. Never introduce a second config mechanism or overwrite existing values
-4. Update `.env.example` / `.env.sample` if one exists
-5. Set `project_name` in code, not in env files
+3. Never introduce a second config mechanism
+4. Never overwrite existing values
+5. Update `.env.example` / `.env.sample` if one exists
+6. Set `project_name` in code, not in env files
 
-`OPIK_URL_OVERRIDE` suffix rules:
+### `OPIK_URL_OVERRIDE` path rules
+
+The URL suffix depends on where Opik is hosted:
 
 | Deployment | URL format | Example |
 |---|---|---|
@@ -240,6 +257,7 @@ After instrumentation, do a quick audit:
 
 ## References
 
+For detailed API signatures and advanced patterns, see:
 - `../opik/references/integrations.md` — All framework integrations (consult during Step 3)
 - `../opik/references/tracing-python.md` — Python SDK reference
 - `../opik/references/tracing-typescript.md` — TypeScript SDK reference
