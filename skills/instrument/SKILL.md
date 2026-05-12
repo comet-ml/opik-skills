@@ -16,16 +16,15 @@ allowed-tools:
 
 You are instrumenting an existing codebase with Opik observability. Follow these steps precisely.
 
-## Step 1 — Scope
+## Step 1 — Detect Language, Frameworks & Scope
 
-If `$ARGUMENTS` is provided, scope your work to those files or directories. Otherwise, discover the project root and instrument the main application code.
+If `$ARGUMENTS` is provided, scope your work to those files or directories. Otherwise, discover the project root.
 
-## Step 2 — Detect Language & Frameworks
+Run **all** of these discovery tasks in parallel — issue every read in a single batch, do not wait for one before starting the next:
 
-Scan the codebase to determine:
-
-1. **Language**: Python (look for `*.py`, `pyproject.toml`, `requirements.txt`) or TypeScript (look for `*.ts`, `*.tsx`, `package.json`)
-2. **LLM frameworks in use** — search imports for these patterns:
+1. **Language**: Read `pyproject.toml`, `requirements.txt` (Python) or `package.json` (TypeScript) to confirm language. If none are present, list source files and identify the language from their extensions (`*.py` → Python, `*.ts` / `*.tsx` → TypeScript).
+2. **Existing Opik usage**: Read source files and look for `import opik` / `@opik.track`. **If already present, audit for completeness rather than re-instrumenting** — check that `entrypoint=True` exists, flush is present for scripts, and env config is set, then stop.
+3. **LLM frameworks**: Read source files and look for these import patterns:
 
 | Import pattern | Framework | Integration |
 |---|---|---|
@@ -49,38 +48,30 @@ Scan the codebase to determine:
 | `opik-langchain` / `OpikCallbackHandler` (TS) | LangChain.js | `OpikCallbackHandler` |
 | `opik-gemini` / `trackGemini` (TS) | Gemini (TS) | `trackGemini` |
 
-3. **Existing Opik usage** — check if `opik` or `@opik.track` is already imported. If so, audit rather than re-instrument.
+## Step 2 — Identify the Call Graph
 
-## Step 3 — Identify the Call Graph
-
-Find:
-- **Entrypoint**: the top-level function that kicks off the agent (e.g., `main`, `run`, `agent`, `handle_message`, a route handler, or whatever the user's main orchestration function is)
-- **LLM call sites**: functions that call an LLM provider directly
+Read all source files identified in Step 1 **in parallel** — issue reads for every file at once rather than one at a time. From those reads, find:
+- **Entrypoint candidates**: `def main`, `def run`, `def agent`, `def handle_message`, `@app.route`, `@app.post`, `@app.get`, or equivalent route decorators
+- **LLM call sites**: instantiations of detected framework clients (e.g., `OpenAI()`, `anthropic.Anthropic()`)
 - **Tool functions**: retrieval, search, API calls, or other tool-like operations
 - **Existing config classes**: dataclasses, Pydantic models, or plain classes holding model names, temperatures, prompts, or other tunable parameters
 
 ### Entrypoint Parameter Rules
 
-The function marked with `entrypoint=True` **must only accept primitive-typed parameters**: `str`, `int`, `float`, `bool`, and `list`/`dict` of primitives. This is because:
-- Opik reads the function's type hints to build an **input form in the UI**
-- Users will type these values manually in a text field via the Local Runner
-- Complex types (Pydantic models, dataclasses, request objects, custom classes) cannot be entered in a UI input field
+The function marked with `entrypoint=True` **must only accept primitive-typed parameters**: `str`, `int`, `float`, `bool`, and `list`/`dict` of primitives. Opik reads these type hints to build an input form in the UI — complex types (Pydantic models, dataclasses, request objects) cannot be entered in a text field.
 
-**If the candidate entrypoint accepts complex types** (e.g., a request model, a config object, a dataclass):
-1. **Look higher in the call chain** for a function that already accepts primitives
-2. If none exists, **create a thin wrapper function** that accepts only primitives, unpacks them, and calls the original function. Move the `entrypoint=True` decorator to this wrapper.
+**If the candidate entrypoint accepts complex types:**
+1. Look higher in the call chain for a function that already accepts primitives
+2. If none exists, create a thin wrapper that accepts only primitives, unpacks them, and calls the original function
 
-**Example — bad entrypoint (complex parameter):**
 ```python
-# ❌ DO NOT mark this as entrypoint — RecommendRequest is a Pydantic model
+# ❌ Complex parameter — cannot be entrypoint
 @app.post("/recommend")
 async def recommend(request: RecommendRequest):
     summary, tool_results = await run_agent(user_message=build_user_message(request))
-    return RecommendResponse(city=request.city, recommendations=_extract_recommendations(tool_results), summary=summary)
-```
+    return RecommendResponse(...)
 
-**Example — good entrypoint (primitives only):**
-```python
+# ✅ Thin wrapper with primitives — mark this as entrypoint
 @opik.track(name="recommend-agent", entrypoint=True)
 async def _run_entrypoint(user_message: str) -> tuple[str, list[dict]]:
     """Opik entrypoint — receives only the user message for Local Runner schema."""
@@ -89,16 +80,18 @@ async def _run_entrypoint(user_message: str) -> tuple[str, list[dict]]:
 @app.post("/recommend")
 async def recommend(request: RecommendRequest):
     summary, tool_results = await _run_entrypoint(user_message=build_user_message(request))
-    return RecommendResponse(city=request.city, recommendations=_extract_recommendations(tool_results), summary=summary)
+    return RecommendResponse(...)
 ```
 
-The wrapper extracts the primitive values from the complex object and delegates to the existing logic. The HTTP handler calls the wrapper instead of the inner function directly, so the trace captures the full execution.
+## Step 3 — Instrument Files
 
-## Step 4 — Add Framework Integrations
+Read the integration reference and all files to be edited **in parallel** before making any changes — fetch `../opik/references/integrations.md` alongside every target source file in a single batch. Once all reads complete, apply framework integrations and `@opik.track` decorators to each file in a single editing pass.
 
-For each detected framework, add the appropriate integration at the module level. See the integration table above and `references/integrations.md` for the exact patterns.
+### Python
 
-**Python examples:**
+Add `import opik` at the top of each file. Then:
+
+**Framework integrations** (add at module level, after existing client instantiation):
 
 ```python
 # OpenAI
@@ -120,23 +113,7 @@ from opik.opik_context import get_current_span_data
 #   metadata={"opik": {"current_span_data": get_current_span_data()}}
 ```
 
-**TypeScript examples:**
-
-```typescript
-// OpenAI
-import { trackOpenAI } from "opik-openai";
-const trackedClient = trackOpenAI(openai);
-
-// Vercel AI SDK
-import { OpikExporter } from "opik-vercel";
-// set up NodeSDK with OpikExporter
-```
-
-## Step 5 — Add `@opik.track` Decorators (Python) or Client Tracing (TypeScript)
-
-### Python
-
-Add `import opik` at the top of each file you instrument.
+**`@opik.track` decorators** (place above any existing decorators):
 
 | Function role | Decorator |
 |---|---|
@@ -146,15 +123,12 @@ Add `import opik` at the top of each file you instrument.
 | Guardrail / validation | `@opik.track(type="guardrail")` |
 | Other helper in the call chain | `@opik.track` |
 
-- **Entrypoint parameters must be primitives only** (`str`, `int`, `float`, `bool`, `list`, `dict`). If the natural entrypoint takes a complex type, create a wrapper — see Step 3 "Entrypoint Parameter Rules".
-- **Config access must happen inside `@opik.track`**: Any call to `client.get_or_create_config()` and subsequent access of config fields must occur inside a `@opik.track`-decorated function, or in a function called downstream from one. This is how Opik injects config metadata into the current trace. Calling it at module level or outside the traced call stack will raise an error.
-- Place the decorator **above** any existing decorators (e.g., above `@app.route`)
-- For async functions, `@opik.track` works the same way — no changes needed
-- If the function is a **script entrypoint** (not a long-running server), add `opik.flush_tracker()` after the top-level call
+Rules:
+- Do **not** add `@opik.track(type="llm")` to a function already wrapped by a framework integration — that would double-trace it
+- `get_or_create_config()` and config field access must happen **inside** a `@opik.track`-decorated function or downstream from one — never at module level
+- If the function is a script entrypoint (not a long-running server), add `opik.flush_tracker()` after the top-level call
 
 ### TypeScript
-
-Use the client-based approach:
 
 ```typescript
 import { Opik } from "opik";
@@ -180,9 +154,21 @@ const myAgent = track(
 );
 ```
 
-## Step 6 — Conversational Agents: Add `thread_id`
+Framework integrations:
 
-If the agent handles multi-turn conversations (chat bots, support agents, multi-step assistants), wire `thread_id`:
+```typescript
+// OpenAI
+import { trackOpenAI } from "opik-openai";
+const trackedClient = trackOpenAI(openai);
+
+// Vercel AI SDK
+import { OpikExporter } from "opik-vercel";
+// set up NodeSDK with OpikExporter
+```
+
+## Step 4 — Conversational Agents: Add `thread_id`
+
+If the agent handles multi-turn conversations, wire `thread_id`. Skip for single-shot agents or batch processing.
 
 ```python
 @opik.track(entrypoint=True)
@@ -191,22 +177,18 @@ def handle_message(session_id: str, message: str) -> str:
     return generate_response(session_id, message)
 ```
 
-Skip this for single-shot agents or batch processing.
+## Step 5 — Environment Config & Install Command
 
-## Step 7 — Environment Config
+Run these two tasks in parallel — read all env files at once before writing any. Read `.env`, `.env.local`, `.env.example`, `.env.sample`, and `~/.opik.config` simultaneously, then apply changes only to whichever exist.
 
-Follow the setup decision tree from the main opik skill:
-
-1. If the project has `.env` / `.env.local` → append `OPIK_API_KEY`, `OPIK_WORKSPACE`, `OPIK_URL_OVERRIDE` (if missing)
+**Environment config:**
+1. If the project has `.env` / `.env.local` → append `OPIK_API_KEY`, `OPIK_WORKSPACE`, `OPIK_URL_OVERRIDE` (only if missing)
 2. If no `.env` exists → Python: create/update `~/.opik.config`; TypeScript: create `.env` or `.env.local`
-3. Never introduce a second config mechanism
-4. Never overwrite existing values
-5. Update `.env.example` / `.env.sample` if one exists
-6. Set `project_name` in code, not in env files
+3. Never introduce a second config mechanism or overwrite existing values
+4. Update `.env.example` / `.env.sample` if one exists
+5. Set `project_name` in code, not in env files
 
-### `OPIK_URL_OVERRIDE` path rules
-
-The URL suffix depends on where Opik is hosted:
+`OPIK_URL_OVERRIDE` suffix rules:
 
 | Deployment | URL format | Example |
 |---|---|---|
@@ -217,7 +199,7 @@ The URL suffix depends on where Opik is hosted:
 - **Self-hosted** (typically `localhost` or an internal hostname): append only `/api` — no `/opik` prefix
 - When writing or suggesting an `OPIK_URL_OVERRIDE` value, apply this rule so users don't have to remember it
 
-## Step 8 — Install Dependencies
+## Step 6 — Install Dependencies
 
 Print the install command but do NOT run it automatically. Let the user decide.
 
@@ -233,7 +215,7 @@ npm install opik
 ```
 Plus framework-specific packages: `opik-openai`, `opik-vercel`, `opik-langchain`, `opik-gemini` as needed.
 
-## Step 9 — Verify
+## Step 7 — Final Checklist
 
 After instrumentation, do a quick audit:
 
@@ -258,8 +240,7 @@ After instrumentation, do a quick audit:
 
 ## References
 
-For detailed API signatures and advanced patterns, see:
+- `../opik/references/integrations.md` — All framework integrations (consult during Step 3)
 - `../opik/references/tracing-python.md` — Python SDK reference
 - `../opik/references/tracing-typescript.md` — TypeScript SDK reference
-- `../opik/references/integrations.md` — All framework integrations
 - `../opik/references/observability.md` — Core concepts (traces, spans, threads)
