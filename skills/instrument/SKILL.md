@@ -191,7 +191,7 @@ def handle_message(session_id: str, message: str) -> str:
 
 Skip this for single-shot agents or batch processing.
 
-## Step 5 — Environment Config & Install Command
+## Step 5 — Environment Config
 
 Run these two tasks in parallel — read all env files at once before writing any. Read `.env`, `.env.local`, `.env.example`, `.env.sample`, and `~/.opik.config` simultaneously, then apply changes only to whichever exist.
 
@@ -232,7 +232,7 @@ npm install opik
 ```
 Plus framework-specific packages: `opik-openai`, `opik-vercel`, `opik-langchain`, `opik-gemini` as needed.
 
-## Step 7 — Final Checklist
+## Step 7 — Verify
 
 After instrumentation, do a quick audit:
 
@@ -261,4 +261,5 @@ For detailed API signatures and advanced patterns, see:
 - `../opik/references/integrations.md` — All framework integrations (consult during Step 3)
 - `../opik/references/tracing-python.md` — Python SDK reference
 - `../opik/references/tracing-typescript.md` — TypeScript SDK reference
+- `../opik/references/integrations.md` — All framework integrations
 - `../opik/references/observability.md` — Core concepts (traces, spans, threads)
