@@ -245,6 +245,7 @@ After instrumentation, do a quick audit:
 - [ ] No hardcoded API keys were introduced
 - [ ] Existing tests still import correctly (no circular imports introduced)
 - [ ] No deprecated `opik.Prompt` / `opik.ChatPrompt` / `opik.Config` usage introduced — use the Prompt library instead
+- [ ] All `client.get_prompt()` / `client.get_chat_prompt()` calls are inside `@opik.track`-decorated functions — prompt version will not appear in traces otherwise
 
 ## Anti-Patterns to Avoid
 
@@ -252,6 +253,7 @@ After instrumentation, do a quick audit:
 - **Orphaned LiteLLM traces**: Always pass `current_span_data` when `OpikLogger` is used inside `@opik.track` code.
 - **Complex entrypoint parameters**: The entrypoint function must only accept primitives (`str`, `int`, `float`, `bool`, `list`, `dict`). Pydantic models, dataclasses, or custom classes can't be typed into a UI input field. If the natural entrypoint takes a complex type, create a thin wrapper that accepts primitives.
 - **Using deprecated `opik.Prompt` / `opik.ChatPrompt` / `opik.Config`**: These have been retired. Use `client.get_prompt()` / `client.get_chat_prompt()` from the Prompt library instead.
+- **Fetching prompts outside `@opik.track`**: `client.get_prompt()` / `client.get_chat_prompt()` must be called inside a `@opik.track`-decorated function. Fetching at module level works functionally but the prompt version won't be linked to the trace and won't appear in the Traces view.
 - **Missing entrypoint**: Without `entrypoint=True`, Local Runner (`opik connect`) won't discover the agent.
 - **Missing flush**: Scripts that exit without flushing lose trace data.
 - **Overwriting config**: Check before writing to `.env` or `~/.opik.config`.

@@ -193,11 +193,13 @@ After instrumentation, do a quick audit:
 - [ ] LiteLLM calls inside `@opik.track` pass `current_span_data` via metadata
 - [ ] No hardcoded API keys were introduced
 - [ ] Existing tests still import correctly (no circular imports introduced)
+- [ ] All `client.get_prompt()` / `client.get_chat_prompt()` calls are inside `@opik.track`-decorated functions — prompt version will not appear in traces otherwise
 
 ## Anti-Patterns to Avoid
 
 - **Double-wrapping**: Don't add `@opik.track(type="llm")` to a function that already uses a framework integration (e.g., `track_openai`). The integration handles tracing.
 - **Orphaned LiteLLM traces**: Always pass `current_span_data` when `OpikLogger` is used inside `@opik.track` code.
+- **Fetching prompts outside `@opik.track`**: `client.get_prompt()` / `client.get_chat_prompt()` must be called inside a `@opik.track`-decorated function. Fetching at module level works functionally but the prompt version won't be linked to the trace and won't appear in the Traces view.
 - **Missing entrypoint**: Without `entrypoint=True`, Local Runner (`opik connect`) won't discover the agent.
 - **Missing flush**: Scripts that exit without flushing lose trace data.
 - **Overwriting config**: Check before writing to `.env` or `~/.opik.config`.
