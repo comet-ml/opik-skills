@@ -57,7 +57,7 @@ Find:
 - **Entrypoint**: the top-level function that kicks off the agent (e.g., `main`, `run`, `agent`, `handle_message`, a route handler, or whatever the user's main orchestration function is)
 - **LLM call sites**: functions that call an LLM provider directly
 - **Tool functions**: retrieval, search, API calls, or other tool-like operations
-- **Existing config classes**: dataclasses, Pydantic models, or plain classes holding model names, temperatures, prompts, or other tunable parameters — note these for a future `/opik:instrument-agent-config` pass
+- **Existing config classes**: dataclasses, Pydantic models, or plain classes holding model names, temperatures, or other tunable parameters — leave these in place; prompt management is handled separately via the Prompt library (`client.get_prompt` / `client.get_chat_prompt`)
 
 ## Step 4 — Add Framework Integrations
 
