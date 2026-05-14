@@ -57,7 +57,7 @@ Find:
 - **Entrypoint**: the top-level function that kicks off the agent (e.g., `main`, `run`, `agent`, `handle_message`, a route handler, or whatever the user's main orchestration function is)
 - **LLM call sites**: functions that call an LLM provider directly
 - **Tool functions**: retrieval, search, API calls, or other tool-like operations
-- **Existing config classes**: dataclasses, Pydantic models, or plain classes holding model names, temperatures, prompts, or other tunable parameters
+- **Prompts and prompt-related config**: hardcoded prompt strings, system messages, message templates, and any associated model/temperature values — note these as candidates for the Prompt Library (`client.get_prompt` / `client.get_chat_prompt` with `metadata` for model config)
 
 ### Entrypoint Parameter Rules
 
@@ -150,7 +150,7 @@ Add `import opik` at the top of each file you instrument.
 - Place the decorator **above** any existing decorators (e.g., above `@app.route`)
 - For async functions, `@opik.track` works the same way — no changes needed
 - If the function is a **script entrypoint** (not a long-running server), add `opik.flush_tracker()` after the top-level call
-- Prompts are managed via the Prompt library (`client.get_prompt` / `client.get_chat_prompt`), not via `opik.Prompt` fields on a config class
+- **`client.get_prompt()` / `client.get_chat_prompt()` must be called inside a `@opik.track`-decorated function** — this links the fetched prompt version to the trace so it appears in the Traces view. Fetching at module level works but the prompt won't be visible in traces.
 
 ### TypeScript
 
