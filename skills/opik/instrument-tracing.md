@@ -97,9 +97,58 @@ import { OpikExporter } from "opik-vercel";
 // set up NodeSDK with OpikExporter
 ```
 
-## Step 5 — Migrate Prompts to the Prompt Library
+## Step 5 — Add `@opik.track` Decorators (Python) or Client Tracing (TypeScript)
 
-For every prompt found in Step 3, replace the hardcoded value with a `get_prompt` / `get_chat_prompt` call inside the enclosing `@opik.track`-decorated function.
+This step adds the tracing scaffolding that the prompt migration in Step 6 relies on. Add decorators first so that the `get_prompt` / `get_chat_prompt` calls introduced next will land inside `@opik.track`-decorated functions.
+
+### Python
+
+Add `import opik` at the top of each file you instrument.
+
+| Function role | Decorator |
+|---|---|
+| Entrypoint (top-level agent) | `@opik.track(entrypoint=True, name="<agent-name>")` |
+| LLM call | `@opik.track(type="llm")` |
+| Tool / retrieval | `@opik.track(type="tool")` |
+| Guardrail / validation | `@opik.track(type="guardrail")` |
+| Other helper in the call chain | `@opik.track` |
+
+- Place the decorator **above** any existing decorators (e.g., above `@app.route`)
+- For async functions, `@opik.track` works the same way — no changes needed
+- If the function is a **script entrypoint** (not a long-running server), add `opik.flush_tracker()` after the top-level call
+- **`client.get_prompt()` / `client.get_chat_prompt()` must be called inside a `@opik.track`-decorated function** — this links the fetched prompt version to the trace so it appears in the Traces view. Fetching at module level works but the prompt won't be visible in traces.
+
+### TypeScript
+
+Use the client-based approach:
+
+```typescript
+import { Opik } from "opik";
+const client = new Opik({ projectName: "<project-name>" });
+
+// In the entrypoint function:
+const trace = client.trace({ name: "<agent-name>", input: { ... } });
+const span = trace.span({ name: "<operation>", type: "tool", input: { ... } });
+// ... logic
+span.end({ output: { ... } });
+trace.end({ output: { ... } });
+await client.flush();
+```
+
+For entrypoints that should be discoverable by `opik connect`:
+
+```typescript
+import { track } from "opik";
+
+const myAgent = track(
+  { name: "<agent-name>", entrypoint: true, params: [{ name: "query", type: "string" }] },
+  async (query: string) => { /* ... */ }
+);
+```
+
+## Step 6 — Migrate Prompts to the Prompt Library
+
+For every prompt found in Step 3, replace the hardcoded value with a `get_prompt` / `get_chat_prompt` call inside the enclosing `@opik.track`-decorated function added in Step 5.
 
 **Classify each prompt:**
 - Single string (system prompt, instruction, template) → `create_prompt` / `get_prompt`
@@ -168,53 +217,6 @@ const runAgent = track({ entrypoint: true, projectName: "<project-name>" }, asyn
     const { model, temperature } = prompt.metadata as { model: string; temperature: number };
     return llmCall({ model, temperature, systemMessage, question });
 });
-```
-
-## Step 6 — Add `@opik.track` Decorators (Python) or Client Tracing (TypeScript)
-
-### Python
-
-Add `import opik` at the top of each file you instrument.
-
-| Function role | Decorator |
-|---|---|
-| Entrypoint (top-level agent) | `@opik.track(entrypoint=True, name="<agent-name>")` |
-| LLM call | `@opik.track(type="llm")` |
-| Tool / retrieval | `@opik.track(type="tool")` |
-| Guardrail / validation | `@opik.track(type="guardrail")` |
-| Other helper in the call chain | `@opik.track` |
-
-- Place the decorator **above** any existing decorators (e.g., above `@app.route`)
-- For async functions, `@opik.track` works the same way — no changes needed
-- If the function is a **script entrypoint** (not a long-running server), add `opik.flush_tracker()` after the top-level call
-- **`client.get_prompt()` / `client.get_chat_prompt()` must be called inside a `@opik.track`-decorated function** — this links the fetched prompt version to the trace so it appears in the Traces view. Fetching at module level works but the prompt won't be visible in traces.
-
-### TypeScript
-
-Use the client-based approach:
-
-```typescript
-import { Opik } from "opik";
-const client = new Opik({ projectName: "<project-name>" });
-
-// In the entrypoint function:
-const trace = client.trace({ name: "<agent-name>", input: { ... } });
-const span = trace.span({ name: "<operation>", type: "tool", input: { ... } });
-// ... logic
-span.end({ output: { ... } });
-trace.end({ output: { ... } });
-await client.flush();
-```
-
-For entrypoints that should be discoverable by `opik connect`:
-
-```typescript
-import { track } from "opik";
-
-const myAgent = track(
-  { name: "<agent-name>", entrypoint: true, params: [{ name: "query", type: "string" }] },
-  async (query: string) => { /* ... */ }
-);
 ```
 
 ## Step 7 — Conversational Agents: Add `thread_id`
