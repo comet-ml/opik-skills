@@ -132,7 +132,80 @@ import { OpikExporter } from "opik-vercel";
 // set up NodeSDK with OpikExporter
 ```
 
-## Step 5 — Add `@opik.track` Decorators (Python) or Client Tracing (TypeScript)
+## Step 5 — Migrate Prompts to the Prompt Library
+
+For every prompt found in Step 3, replace the hardcoded value with a `get_prompt` / `get_chat_prompt` call inside the enclosing `@opik.track`-decorated function.
+
+**Classify each prompt:**
+- Single string (system prompt, instruction, template) → `create_prompt` / `get_prompt`
+- List of `{"role", "content"}` messages → `create_chat_prompt` / `get_chat_prompt`
+
+**Include model name, temperature, and any other call-level parameters in `metadata`** so they version together with the prompt template and can be updated from the Opik UI without a code change.
+
+`get_prompt` / `get_chat_prompt` returns `None` if the prompt doesn't exist yet — check for `None` and create on first run so the same code handles both initial setup and subsequent runs.
+
+**Python:**
+
+```python
+opik_client = opik.Opik()
+
+@opik.track(entrypoint=True, project_name="<project-name>")
+def run_agent(question: str) -> str:
+    prompt = opik_client.get_prompt(name="<prompt-name>")
+    if prompt is None:
+        prompt = opik_client.create_prompt(
+            name="<prompt-name>",
+            prompt="<original hardcoded prompt text>",
+            metadata={"model": "<model>", "temperature": <value>},
+        )
+    system_message = prompt.format()  # pass template vars if any: prompt.format(var=value)
+    return llm_call(
+        model=prompt.metadata["model"],
+        temperature=prompt.metadata["temperature"],
+        system_prompt=system_message,
+        question=question,
+    )
+```
+
+For multi-turn message lists:
+
+```python
+    chat_prompt = opik_client.get_chat_prompt(name="<prompt-name>")
+    if chat_prompt is None:
+        chat_prompt = opik_client.create_chat_prompt(
+            name="<prompt-name>",
+            messages=[...],  # original hardcoded messages list
+            metadata={"model": "<model>", "temperature": <value>},
+        )
+    messages = chat_prompt.format()  # pass template vars if any
+    return llm_call(
+        model=chat_prompt.metadata["model"],
+        temperature=chat_prompt.metadata["temperature"],
+        messages=messages,
+    )
+```
+
+**TypeScript:**
+
+```typescript
+const opikClient = new Opik({ projectName: "<project-name>" });
+
+const runAgent = track({ entrypoint: true, projectName: "<project-name>" }, async (question: string) => {
+    let prompt = await opikClient.getPrompt({ name: "<prompt-name>" });
+    if (prompt === null) {
+        prompt = await opikClient.createPrompt({
+            name: "<prompt-name>",
+            prompt: "<original hardcoded prompt text>",
+            metadata: { model: "<model>", temperature: <value> },
+        });
+    }
+    const systemMessage = prompt.format();  // pass template vars if any
+    const { model, temperature } = prompt.metadata as { model: string; temperature: number };
+    return llmCall({ model, temperature, systemMessage, question });
+});
+```
+
+## Step 6 — Add `@opik.track` Decorators (Python) or Client Tracing (TypeScript)
 
 ### Python
 
@@ -180,7 +253,7 @@ const myAgent = track(
 );
 ```
 
-## Step 6 — Conversational Agents: Add `thread_id`
+## Step 7 — Conversational Agents: Add `thread_id`
 
 If the agent handles multi-turn conversations (chat bots, support agents, multi-step assistants), wire `thread_id`:
 
@@ -193,7 +266,7 @@ def handle_message(session_id: str, message: str) -> str:
 
 Skip this for single-shot agents or batch processing.
 
-## Step 7 — Environment Config
+## Step 8 — Environment Config
 
 Follow the setup decision tree from the main opik skill:
 
@@ -217,7 +290,7 @@ The URL suffix depends on where Opik is hosted:
 - **Self-hosted** (typically `localhost` or an internal hostname): append only `/api` — no `/opik` prefix
 - When writing or suggesting an `OPIK_URL_OVERRIDE` value, apply this rule so users don't have to remember it
 
-## Step 8 — Install Dependencies
+## Step 9 — Install Dependencies
 
 Print the install command but do NOT run it automatically. Let the user decide.
 
@@ -233,7 +306,7 @@ npm install opik
 ```
 Plus framework-specific packages: `opik-openai`, `opik-vercel`, `opik-langchain`, `opik-gemini` as needed.
 
-## Step 9 — Verify
+## Step 10 — Verify
 
 After instrumentation, do a quick audit:
 
