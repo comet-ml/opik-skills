@@ -57,7 +57,7 @@ Find:
 - **Entrypoint**: the top-level function that kicks off the agent (e.g., `main`, `run`, `agent`, `handle_message`, a route handler, or whatever the user's main orchestration function is)
 - **LLM call sites**: functions that call an LLM provider directly
 - **Tool functions**: retrieval, search, API calls, or other tool-like operations
-- **Existing config classes**: dataclasses, Pydantic models, or plain classes holding model names, temperatures, prompts, or other tunable parameters — note these for a future `/opik:instrument-agent-config` pass
+- **Prompts and prompt-related config**: hardcoded prompt strings, system messages, message templates, and any associated model/temperature values — note these as candidates for the Prompt Library (`client.get_prompt` / `client.get_chat_prompt` with `metadata` for model config)
 
 ## Step 4 — Add Framework Integrations
 
@@ -99,6 +99,8 @@ import { OpikExporter } from "opik-vercel";
 
 ## Step 5 — Add `@opik.track` Decorators (Python) or Client Tracing (TypeScript)
 
+This step adds the tracing scaffolding that the prompt migration in Step 6 relies on. Add decorators first so that the `get_prompt` / `get_chat_prompt` calls introduced next will land inside `@opik.track`-decorated functions.
+
 ### Python
 
 Add `import opik` at the top of each file you instrument.
@@ -114,6 +116,7 @@ Add `import opik` at the top of each file you instrument.
 - Place the decorator **above** any existing decorators (e.g., above `@app.route`)
 - For async functions, `@opik.track` works the same way — no changes needed
 - If the function is a **script entrypoint** (not a long-running server), add `opik.flush_tracker()` after the top-level call
+- **`client.get_prompt()` / `client.get_chat_prompt()` must be called inside a `@opik.track`-decorated function** — this links the fetched prompt version to the trace so it appears in the Traces view. Fetching at module level works but the prompt won't be visible in traces.
 
 ### TypeScript
 
@@ -143,7 +146,80 @@ const myAgent = track(
 );
 ```
 
-## Step 6 — Conversational Agents: Add `thread_id`
+## Step 6 — Migrate Prompts to the Prompt Library
+
+For every prompt found in Step 3, replace the hardcoded value with a `get_prompt` / `get_chat_prompt` call inside the enclosing `@opik.track`-decorated function added in Step 5.
+
+**Classify each prompt:**
+- Single string (system prompt, instruction, template) → `create_prompt` / `get_prompt`
+- List of `{"role", "content"}` messages → `create_chat_prompt` / `get_chat_prompt`
+
+**Include model name, temperature, and any other call-level parameters in `metadata`** so they version together with the prompt template and can be updated from the Opik UI without a code change.
+
+`get_prompt` / `get_chat_prompt` returns `None` if the prompt doesn't exist yet — check for `None` and create on first run so the same code handles both initial setup and subsequent runs.
+
+**Python:**
+
+```python
+opik_client = opik.Opik()
+
+@opik.track(entrypoint=True, project_name="<project-name>")
+def run_agent(question: str) -> str:
+    prompt = opik_client.get_prompt(name="<prompt-name>")
+    if prompt is None:
+        prompt = opik_client.create_prompt(
+            name="<prompt-name>",
+            prompt="<original hardcoded prompt text>",
+            metadata={"model": "<model>", "temperature": <value>},
+        )
+    system_message = prompt.format()  # pass template vars if any: prompt.format(var=value)
+    return llm_call(
+        model=prompt.metadata["model"],
+        temperature=prompt.metadata["temperature"],
+        system_prompt=system_message,
+        question=question,
+    )
+```
+
+For multi-turn message lists:
+
+```python
+    chat_prompt = opik_client.get_chat_prompt(name="<prompt-name>")
+    if chat_prompt is None:
+        chat_prompt = opik_client.create_chat_prompt(
+            name="<prompt-name>",
+            messages=[...],  # original hardcoded messages list
+            metadata={"model": "<model>", "temperature": <value>},
+        )
+    messages = chat_prompt.format()  # pass template vars if any
+    return llm_call(
+        model=chat_prompt.metadata["model"],
+        temperature=chat_prompt.metadata["temperature"],
+        messages=messages,
+    )
+```
+
+**TypeScript:**
+
+```typescript
+const opikClient = new Opik({ projectName: "<project-name>" });
+
+const runAgent = track({ entrypoint: true, projectName: "<project-name>" }, async (question: string) => {
+    let prompt = await opikClient.getPrompt({ name: "<prompt-name>" });
+    if (prompt === null) {
+        prompt = await opikClient.createPrompt({
+            name: "<prompt-name>",
+            prompt: "<original hardcoded prompt text>",
+            metadata: { model: "<model>", temperature: <value> },
+        });
+    }
+    const systemMessage = prompt.format();  // pass template vars if any
+    const { model, temperature } = prompt.metadata as { model: string; temperature: number };
+    return llmCall({ model, temperature, systemMessage, question });
+});
+```
+
+## Step 7 — Conversational Agents: Add `thread_id`
 
 If the agent handles multi-turn conversations (chat bots, support agents, multi-step assistants), wire `thread_id`:
 
@@ -156,7 +232,7 @@ def handle_message(session_id: str, message: str) -> str:
 
 Skip this for single-shot agents or batch processing.
 
-## Step 7 — Environment Config
+## Step 8 — Environment Config
 
 Follow the setup decision tree from the main opik skill:
 
@@ -167,7 +243,7 @@ Follow the setup decision tree from the main opik skill:
 5. Update `.env.example` / `.env.sample` if one exists
 6. Set `project_name` in code, not in env files
 
-## Step 8 — Install Dependencies
+## Step 9 — Install Dependencies
 
 Print the install command but do NOT run it automatically. Let the user decide.
 
@@ -183,7 +259,7 @@ npm install opik
 ```
 Plus framework-specific packages: `opik-openai`, `opik-vercel`, `opik-langchain`, `opik-gemini` as needed.
 
-## Step 9 — Verify
+## Step 10 — Verify
 
 After instrumentation, do a quick audit:
 
@@ -193,11 +269,13 @@ After instrumentation, do a quick audit:
 - [ ] LiteLLM calls inside `@opik.track` pass `current_span_data` via metadata
 - [ ] No hardcoded API keys were introduced
 - [ ] Existing tests still import correctly (no circular imports introduced)
+- [ ] All `client.get_prompt()` / `client.get_chat_prompt()` calls are inside `@opik.track`-decorated functions — prompt version will not appear in traces otherwise
 
 ## Anti-Patterns to Avoid
 
 - **Double-wrapping**: Don't add `@opik.track(type="llm")` to a function that already uses a framework integration (e.g., `track_openai`). The integration handles tracing.
 - **Orphaned LiteLLM traces**: Always pass `current_span_data` when `OpikLogger` is used inside `@opik.track` code.
+- **Fetching prompts outside `@opik.track`**: `client.get_prompt()` / `client.get_chat_prompt()` must be called inside a `@opik.track`-decorated function. Fetching at module level works functionally but the prompt version won't be linked to the trace and won't appear in the Traces view.
 - **Missing entrypoint**: Without `entrypoint=True`, Local Runner (`opik connect`) won't discover the agent.
 - **Missing flush**: Scripts that exit without flushing lose trace data.
 - **Overwriting config**: Check before writing to `.env` or `~/.opik.config`.

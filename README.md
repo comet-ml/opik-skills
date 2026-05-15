@@ -49,7 +49,7 @@ This installs the `opik` skill into your local skills environment.
 | --- | --- |
 | Tracing | Python decorators, TypeScript client tracing, REST API tracing, span types |
 | Integrations | OpenAI, Anthropic, LangChain, CrewAI, DSPy, Google ADK, Vercel AI SDK, and more |
-| Agent Config | `opik.Config`, `get_or_create_config()`, environments, prompt fields |
+| Prompt Library | `client.create_prompt` / `client.get_prompt` (and chat variants), versioning, `metadata` for model/temperature |
 | Local Runner | `opik connect`, pairing flow, entrypoint requirements, troubleshooting |
 | Evaluation | Test Suites, `run_tests()`, assertions, execution policies, CI gating |
 | Conversations | `thread_id`, conversation metrics, common pitfalls |
@@ -57,7 +57,7 @@ This installs the `opik` skill into your local skills environment.
 
 ## One-time Opik setup
 
-These skills are designed to help your coding agent fully integrate Opik into your project, including tracing, evaluations, `AgentConfig`, threads, and `opik connect`.
+These skills are designed to help your coding agent fully integrate Opik into your project, including tracing, evaluations, the Prompt Library, threads, and `opik connect`.
 
 Before using them, authenticate Opik once in the environment where your agent will work:
 

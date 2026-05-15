@@ -69,58 +69,66 @@ def run_agent(question: str, context: str = "") -> str:
 
 Then pair with: `opik connect --pair <CODE> python3 app.py`
 
-### Agent Configuration Pattern
+### Prompt Library
 
-Externalize hardcoded config values into an `opik.Config` subclass and retrieve at runtime:
+Manage versioned prompts through the `opik.Opik` client. Use `{{variable}}` syntax in prompt text for template variables rendered at call time via `.format()`.
+
+**Storing model config alongside the prompt.** Model names, temperatures, and other parameters you want to version together with the prompt text go in the `metadata` dict. Metadata is stored at the prompt version level — when you fetch a prompt you get both the template and its config from `prompt.metadata`. This replaces the need for a separate config system for prompt-related parameters.
+
+**CRITICAL — call `get_prompt` / `get_chat_prompt` inside a `@opik.track`-decorated function.** This links the fetched prompt version to the trace, making it visible in the Traces view in the Opik UI. Fetching at module level works but the prompt will not appear in traces.
+
+`get_prompt` returns `None` if the prompt doesn't exist yet — check for `None` and create on first run so the same code works for both initial setup and subsequent runs:
 
 ```python
 import opik
 
-class AgentConfig(opik.Config):
-    model: str
-    temperature: float
-    system_prompt: opik.Prompt
-    max_tokens: int
-
-DEFAULT_CONFIG = AgentConfig(
-    model="gpt-4o",
-    temperature=0.7,
-    system_prompt=opik.Prompt(
-        name="agent-system-prompt",
-        project_name="my-agent",
-        prompt="You are a helpful assistant.",
-    ),
-    max_tokens=1024,
-)
-
 client = opik.Opik()
 
-# Retrieve at runtime — MUST be inside @opik.track
 @opik.track(entrypoint=True, project_name="my-agent")
 def run_agent(question: str) -> str:
-    cfg = client.get_or_create_config(
-        fallback=DEFAULT_CONFIG,
-        project_name="my-agent",
-        # optional: env="staging" | version="v1" | version="latest" (default: prod)
-    )
+    # Fetch inside @track so the prompt version is recorded in the trace
+    prompt = client.get_prompt(name="agent-system-prompt")
+    if prompt is None:
+        prompt = client.create_prompt(
+            name="agent-system-prompt",
+            prompt="You are a helpful assistant for {{product}}.",
+            metadata={"model": "gpt-4o", "temperature": 0.7, "max_tokens": 1024},
+        )
+    system_message = prompt.format(product="Opik")
     response = openai_client.chat.completions.create(
-        model=cfg.model, temperature=cfg.temperature, max_tokens=cfg.max_tokens,
-        messages=[{"role": "system", "content": cfg.system_prompt.format()},
+        model=prompt.metadata["model"],
+        temperature=prompt.metadata["temperature"],
+        max_tokens=prompt.metadata["max_tokens"],
+        messages=[{"role": "system", "content": system_message},
                   {"role": "user", "content": question}],
     )
     return response.choices[0].message.content
 ```
 
-**Important:** `get_or_create_config()` must be called inside a `@opik.track`-decorated function. On first call with no existing config, auto-creates from `fallback`. On backend failure, returns `fallback` with `is_fallback=True`.
+For a multi-turn chat template:
 
-**`project_name` is required** on `opik.Prompt` and `opik.ChatPrompt` and must exactly match the `project_name` used in `@opik.track` and `get_or_create_config`. If `get_or_create_config` fails reporting that fields reference the wrong project, this mismatch is the most likely cause.
+```python
+@opik.track(entrypoint=True, project_name="my-agent")
+def run_agent(task: str) -> str:
+    chat_prompt = client.get_chat_prompt(name="agent-chat-template")
+    if chat_prompt is None:
+        chat_prompt = client.create_chat_prompt(
+            name="agent-chat-template",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": "Help me with {{task}}"},
+            ],
+            metadata={"model": "gpt-4o", "temperature": 0.7},
+        )
+    messages = chat_prompt.format(task=task)
+    return llm_call(
+        model=chat_prompt.metadata["model"],
+        temperature=chat_prompt.metadata["temperature"],
+        messages=messages,
+    )
+```
 
-**Selectors** (optional — defaults to prod if omitted):
-- `env="staging"` — version tagged with the given environment
-- `version="v1"` — specific version by name
-- `version="latest"` — most recently published version (useful during development)
-
-**Deploy to environment:** `client.set_config_env(version="v1", env="prod")` — admin/ops only, not for application code
+After the initial run the prompt is registered in the library and can be edited, versioned, and have its metadata updated from the Opik UI. `get_prompt` / `get_chat_prompt` always returns the latest published version, including its metadata. If a new version is published with different metadata (e.g. a different model), the agent picks it up on the next run without a code change.
 
 ### Thread ID for Conversational Agents
 
