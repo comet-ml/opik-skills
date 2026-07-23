@@ -24,6 +24,8 @@
 
 </div>
 
+[Opik](https://github.com/comet-ml/opik) is the open-source LLM observability and evaluation platform, built by [Comet](https://www.comet.com). These agent skills teach coding agents to instrument applications with Opik.
+
 This repo contains a number of skills that teach AI coding agents how to work with Opik in real codebases.
 
 After install, your agent can help with tasks like:
@@ -96,6 +98,15 @@ opik-skills/
 ├── README.md
 └── LICENSE
 ```
+
+## Opik for Claude Code
+
+This repo is part of a set of tools for observing Claude Code and other coding agents with [Opik](https://github.com/comet-ml/opik):
+
+- [opik-claude-code-plugin](https://github.com/comet-ml/opik-claude-code-plugin): log Claude Code sessions as Opik traces, with skills and agents included
+- [ccsync](https://github.com/comet-ml/ccsync): export Claude Code conversation history to Opik
+- [cost-intelligence-proxy](https://github.com/comet-ml/cost-intelligence-proxy): meter Claude Code token spend and cost per call
+- [opik-skills](https://github.com/comet-ml/opik-skills): agent skills for instrumenting your code with Opik **(this repo)**
 
 ## Learn more
 
