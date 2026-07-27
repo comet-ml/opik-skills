@@ -1,0 +1,18 @@
+# Shared skill set that consumers vendor from this repo (OPIK-7471).
+#
+# This is the TARGET set. Migration into this repo is in progress; entries may
+# land before their files do. Host-specific skills are intentionally NOT listed
+# here and stay in their home repo (see SOURCE_OF_TRUTH.md).
+shared:
+  skills:
+    - opik          # SDK reference — tracing, span types, integrations, threads, prompt library
+    - agent-ops     # agent lifecycle — evaluation, metrics, production monitoring
+    - opik-sdk      # imperative Python client API reference
+    - instrument    # task-shaped: instrument a repo end to end
+  references:
+    - tracing-python
+    - tracing-typescript
+    - tracing-rest-api
+    - integrations
+    - observability
+    - evaluation

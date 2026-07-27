@@ -1,0 +1,38 @@
+name: skills-lint
+
+on:
+  pull_request:
+    paths: ["skills/**"]
+  push:
+    branches: [main]
+    paths: ["skills/**"]
+
+jobs:
+  frontmatter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint SKILL.md frontmatter
+        run: |
+          python3 - <<'PY'
+          import sys, pathlib, re
+          bad = []
+          for p in sorted(pathlib.Path("skills").glob("*/SKILL.md")):
+              txt = p.read_text(encoding="utf-8")
+              m = re.match(r"^---\n(.*?)\n---", txt, re.S)
+              if not m:
+                  bad.append(f"{p}: missing YAML frontmatter")
+                  continue
+              fm = m.group(1)
+              dir_name = p.parent.name
+              name = re.search(r'^name:\s*(.+)$', fm, re.M)
+              desc = re.search(r'^description:\s*(.+)$', fm, re.M)
+              if not name or name.group(1).strip().strip('"\'') != dir_name:
+                  bad.append(f"{p}: `name` must equal directory '{dir_name}'")
+              if not desc or not desc.group(1).strip():
+                  bad.append(f"{p}: missing/empty `description`")
+          if bad:
+              print("\n".join(bad))
+              sys.exit(1)
+          print("frontmatter OK")
+          PY
