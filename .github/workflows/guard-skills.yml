@@ -46,17 +46,19 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const author = context.payload.pull_request.user.login;
             const isBot = context.payload.pull_request.user.type === 'Bot';
             if (isBot) {
               core.setOutput('skip', 'true');
               return;
             }
 
-            const { data: membership } = await github.rest.orgs
-              .getMembershipForUser({ org: context.repo.owner, username: author })
-              .catch(() => ({ data: null }));
-            const isInternal = membership?.state === 'active';
+            // `author_association` comes with the event payload. Asking the org API
+            // instead needed a permission the repo-scoped token does not have, so the
+            // call failed, `.catch` swallowed it, and every author — including org
+            // members — got the outsider message. Reading the payload needs no
+            // permission and cannot fail.
+            const association = context.payload.pull_request.author_association;
+            const isInternal = ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(association);
 
             const action = isInternal
               ? 'Please move this change to `src/opik_mcp/skills/` in [comet-ml/opik-mcp](https://github.com/comet-ml/opik-mcp) — it will reach this repository automatically once merged.'
