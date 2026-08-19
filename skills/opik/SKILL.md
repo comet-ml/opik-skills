@@ -345,3 +345,5 @@ After pairing: entrypoint registered as agent, UI shows input form, jobs from UI
 | All integrations | `references/integrations.md` |
 | Core concepts (traces, spans, threads, metadata) | `references/observability.md` |
 | Test Suites, `run_tests()`, 60+ built-in metrics, legacy `evaluate()` | `references/evaluation.md` |
+
+<!-- deliberate hand edit to prove the guard fires; will be closed -->
