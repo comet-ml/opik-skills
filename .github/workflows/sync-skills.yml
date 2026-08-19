@@ -167,7 +167,28 @@ jobs:
           git commit -m "sync: skills pack from ${SOURCE_REPO} (${UPSTREAM:0:12})"
           git push --force origin "$SYNC_BRANCH"
 
-          if ! gh pr view "$SYNC_BRANCH" --json number >/dev/null 2>&1; then
+          # Deciding whether a pull request is already open needs care, because every
+          # way of getting it wrong ends in the same place: no pull request opens, the
+          # commit sits on a branch nobody watches, and the pack quietly stops updating.
+          #
+          # `gh pr view <branch>` matched by name regardless of state, so a *merged*
+          # pull request from the previous sync counted as an existing one. Listing open
+          # ones is not enough either: `--head` matches a fork's identically-named branch
+          # and any base, so the query is pinned to this repository's own branch and to
+          # `main`. And the lookup is run on its own rather than inside the `if`, because
+          # command substitution there hides a non-zero exit — an API error would read as
+          # "no pull request exists" and silently open a duplicate.
+          if ! existing=$(gh pr list \
+                --state open --base main --head "$SYNC_BRANCH" \
+                --json number,headRefName,headRepositoryOwner \
+                --jq "[.[] | select(.headRefName == \"$SYNC_BRANCH\"
+                       and .headRepositoryOwner.login == \"${GITHUB_REPOSITORY_OWNER}\")]
+                      | .[0].number // empty"); then
+            echo "::error::could not determine whether a sync pull request is already open"
+            exit 1
+          fi
+
+          if [ -z "$existing" ]; then
             gh pr create \
               --base main --head "$SYNC_BRANCH" \
               --title "Sync skills pack from opik-mcp" \
