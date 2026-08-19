@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "pack_version": "0.2.18",
+  "source": "comet-ml/opik-mcp",
+  "source_commit": "89fab57c01cf80b04b718be97966d27ff5383db7",
+  "content_digest": "24e55d70eb3d2291ac58b88e266947f35a37604a464d971511932d7ac6ce6538",
+  "skills": [
+    {
+      "name": "evaluate",
+      "description": "Build an LLM evaluation and run it against your app, returning an experiment with scores. Covers datasets, LLM judges, RAG evaluation, synthetic data, error analysis, and validating evaluators against human labels. Use when the user wants to measure or improve AI product quality, or asks about evals, judges, or evaluation metrics.",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "d7695eef901ed019b26b74822c5c21d42d38c794970464baebe3885e66a2720a"
+        },
+        {
+          "path": "references/error-analysis.md",
+          "sha256": "9949cea8cb3fa4cb37ced2e9f7e240f0c77cc6f900c38bd636db8736cbbcfe3d"
+        },
+        {
+          "path": "references/eval-audit.md",
+          "sha256": "23530d9cb8e8309b1c1424f7195af338f5ea96613a6c3846f0b912ef2722df23"
+        },
+        {
+          "path": "references/evaluate-rag.md",
+          "sha256": "09040abb4ab11b55f8689b3483ec9ab34801cc11f604107d6e8c1d873d730600"
+        },
+        {
+          "path": "references/generate-synthetic-data.md",
+          "sha256": "943da8a7238ceb51570495ad899362cddaf008c22d632153c7636da25c928bf6"
+        },
+        {
+          "path": "references/validate-evaluator.md",
+          "sha256": "e4a9aeca77b2fa7fc3123032fb2d2b69bae9896ddf59f192d969e4771ca32124"
+        },
+        {
+          "path": "references/write-judge-prompt.md",
+          "sha256": "c23ce6ebf1daa968e1a41f3abf49a66634d2a12086b3d30ca17ac85b60670d8a"
+        }
+      ]
+    },
+    {
+      "name": "opik",
+      "description": "Reference for the Opik SDK — tracing, span types, framework integrations, threads, and the prompt library (Python, TypeScript, REST). Use for \"what span types exist\", \"how do I flush\", \"track_openai\", \"add OpikTracer\", \"version a prompt\". To instrument a repo end to end, use the `instrument` skill.",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "24a72d1c8383dcab95b4e04bbdcd4bec8176c56a07dab206fb679e92b1af43de"
+        },
+        {
+          "path": "instrument-tracing.md",
+          "sha256": "3bb7ce6206e65949312cf32c4114424ff09d68c24625e75736fd3938f1827560"
+        },
+        {
+          "path": "references/agent-patterns.md",
+          "sha256": "084d35dcd4b64bae7d75b16aad56025955562c653564b4a36bc148646a704b17"
+        },
+        {
+          "path": "references/best-practices.md",
+          "sha256": "c94844092c7834ac818eeea55c70a781867f3b95d2ea48db9d2da1f32832771e"
+        },
+        {
+          "path": "references/evaluation-datasets.md",
+          "sha256": "3708081f70788b16f9f6c247b56f0f8f638d129dc268142680eda74810424eda"
+        },
+        {
+          "path": "references/evaluation-test-suites.md",
+          "sha256": "9a0f95058b76087494556350f22a5aa58492e194aff59071d830bd6e990cc6fb"
+        },
+        {
+          "path": "references/integrations.md",
+          "sha256": "05e6626a3e9707f7e38445911b461886e5203d2706c0d8be006f31fbd69a1df2"
+        },
+        {
+          "path": "references/observability.md",
+          "sha256": "65e10d382b788687ce4244a1fbdf2474bc0643d769febe09a9be423d774cf19d"
+        },
+        {
+          "path": "references/production.md",
+          "sha256": "24a17a18e6b27e682783344dacc0827bb1ac8d305e309cfc6098ec22da675257"
+        },
+        {
+          "path": "references/tracing-python.md",
+          "sha256": "32b736ad5ae992e9333dd61228f8439959364f60e9e3f62382df11282910e301"
+        },
+        {
+          "path": "references/tracing-rest-api.md",
+          "sha256": "9bd218baa59ed9804904263ac6f27f675c5e1e2c6f7f5f002836e2e484576665"
+        },
+        {
+          "path": "references/tracing-typescript.md",
+          "sha256": "f37183e065700e20d7248a35bd87e0470dd026d4a33e2ed788e7240b5ba75438"
+        }
+      ]
+    }
+  ]
+}
