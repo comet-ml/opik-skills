@@ -53,9 +53,9 @@ jobs:
             }
 
             // `author_association` comes with the event payload. Asking the org API
-            // instead needed a permission the repo-scoped token does not have, so the
+            // instead requires a permission the repo-scoped token does not have, so that
             // call failed, `.catch` swallowed it, and every author — including org
-            // members — got the outsider message. Reading the payload needs no
+            // members — was classified as external. Reading the payload requires no
             // permission and cannot fail.
             const association = context.payload.pull_request.author_association;
             const isInternal = ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(association);
