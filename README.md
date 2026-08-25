@@ -24,42 +24,30 @@
 
 </div>
 
+> **This repository is generated.** The skills are authored in
+> [comet-ml/opik-mcp](https://github.com/comet-ml/opik-mcp) under `src/opik_mcp/skills/`
+> and published here automatically. Edits made here are overwritten by the next sync —
+> please open your pull request against `opik-mcp` instead.
+
 [Opik](https://github.com/comet-ml/opik) is the open-source LLM observability and evaluation platform, built by [Comet](https://www.comet.com). These agent skills teach coding agents to instrument applications with Opik.
-
-This repo contains a number of skills that teach AI coding agents how to work with Opik in real codebases.
-
-After install, your agent can help with tasks like:
-
-- adding Opik tracing to Python or TypeScript apps
-- wiring up framework integrations instead of manual instrumentation
-- configuring and using `AgentConfig` blueprints
-- connecting a local agent to the Opik UI with `opik connect`
-- creating and running Test Suites
-- tracking multi-turn conversations with `thread_id`
 
 ## Install
 
 ```bash
-npx skills add comet-ml/opik-skills
+npx skills add comet-ml/opik-skills -g --all
 ```
 
-This installs the `opik` skill into your local skills environment.
+This works across ~40 coding agents, including Claude Code, Cursor, Codex, and GitHub Copilot.
 
-## What the `opik` skill covers
+## Skills in this pack
 
-| Area | Guidance included |
+| Skill | What it does |
 | --- | --- |
-| Tracing | Python decorators, TypeScript client tracing, REST API tracing, span types |
-| Integrations | OpenAI, Anthropic, LangChain, CrewAI, DSPy, Google ADK, Vercel AI SDK, and more |
-| Prompt Library | `client.create_prompt` / `client.get_prompt` (and chat variants), versioning, `metadata` for model/temperature |
-| Local Runner | `opik connect`, pairing flow, entrypoint requirements, troubleshooting |
-| Evaluation | Test Suites, `run_tests()`, assertions, execution policies, CI gating |
-| Conversations | `thread_id`, conversation metrics, common pitfalls |
-| Observability | trace boundaries, metadata, feedback scores, distributed tracing |
+| [`evaluate`](./skills/evaluate/SKILL.md) | Build an LLM evaluation and run it against your app, returning an experiment with scores. Covers datasets, LLM judges, RAG evaluation, synthetic data, error analysis, and validating evaluators against human labels. Use when the user wants to measure or improve AI product quality, or asks about evals, judges, or evaluation metrics. |
+| [`instrument`](./skills/instrument/SKILL.md) | Add Opik tracing to an existing app and verify a real trace lands. Installs the Opik package, detects the language and LLM framework, adds the minimum tracing, runs a safe representative path, confirms a trace in Opik, and returns the trace link. Use for "instrument my code", "add opik tracing", "add observability", "trace my agent". Not for building a new app from scratch, or a review-only pass with no code changes. |
+| [`opik`](./skills/opik/SKILL.md) | Reference for the Opik SDK — tracing, span types, framework integrations, threads, and the prompt library (Python, TypeScript, REST). Use for "what span types exist", "how do I flush", "track_openai", "add OpikTracer", "version a prompt". To instrument a repo end to end, use the `instrument` skill. |
 
 ## One-time Opik setup
-
-These skills are designed to help your coding agent fully integrate Opik into your project, including tracing, evaluations, the Prompt Library, threads, and `opik connect`.
 
 Before using them, authenticate Opik once in the environment where your agent will work:
 
@@ -77,7 +65,6 @@ Once installed, you can ask your agent things like:
 - "Add Opik tracing to this FastAPI app."
 - "Instrument this TypeScript OpenAI app with Opik."
 - "Help me connect this local agent to Opik with `opik connect`."
-- "Move these hardcoded model settings into `AgentConfig`."
 - "Create a Test Suite for this chatbot."
 - "Add `thread_id` support so Opik groups each conversation correctly."
 
@@ -86,16 +73,11 @@ Once installed, you can ask your agent things like:
 ```text
 opik-skills/
 ├── skills/
+│   ├── evaluate/
+│   ├── instrument/
 │   └── opik/
-│       ├── SKILL.md
-│       └── references/
-│           ├── evaluation.md
-│           ├── integrations.md
-│           ├── observability.md
-│           ├── tracing-python.md
-│           ├── tracing-rest-api.md
-│           └── tracing-typescript.md
 ├── README.md
+├── index.json
 └── LICENSE
 ```
 
