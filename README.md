@@ -43,9 +43,9 @@ This works across ~40 coding agents, including Claude Code, Cursor, Codex, and G
 
 | Skill | What it does |
 | --- | --- |
-| [`evaluate`](./skills/evaluate/SKILL.md) | Build an LLM evaluation and run it against your app, returning an experiment with scores. Covers datasets, LLM judges, RAG evaluation, synthetic data, error analysis, and validating evaluators against human labels. Use when the user wants to measure or improve AI product quality, or asks about evals, judges, or evaluation metrics. |
-| [`instrument`](./skills/instrument/SKILL.md) | Add Opik tracing to an existing app and verify a real trace lands. Installs the Opik package, detects the language and LLM framework, adds the minimum tracing, runs a safe representative path, confirms a trace in Opik, and returns the trace link. Use for "instrument my code", "add opik tracing", "add observability", "trace my agent". Not for building a new app from scratch, or a review-only pass with no code changes. |
-| [`opik`](./skills/opik/SKILL.md) | Reference for the Opik SDK — tracing, span types, framework integrations, threads, and the prompt library (Python, TypeScript, REST). Use for "what span types exist", "how do I flush", "track_openai", "add OpikTracer", "version a prompt". To instrument a repo end to end, use the `instrument` skill. |
+| [`opik`](./skills/opik/SKILL.md) | Reference for the Opik SDK — tracing, span types, framework integrations, threads, and the prompt library (Python, TypeScript, REST). Use for "what span types exist", "how do I flush", "track_openai", "add OpikTracer", "version a prompt". To instrument a repo end to end, use the `opik-instrument` skill. |
+| [`opik-evaluate`](./skills/opik-evaluate/SKILL.md) | Build an LLM evaluation and run it against your app, returning an experiment with scores. Covers datasets, LLM judges, RAG evaluation, synthetic data, error analysis, and validating evaluators against human labels. Use when the user wants to measure or improve AI product quality, or asks about evals, judges, or evaluation metrics. |
+| [`opik-instrument`](./skills/opik-instrument/SKILL.md) | Add Opik tracing to an existing app and verify a real trace lands. Installs the Opik package, detects the language and LLM framework, adds the minimum tracing, runs a safe representative path, confirms a trace in Opik, and returns the trace link. Use for "instrument my code", "add opik tracing", "add observability", "trace my agent". Not for building a new app from scratch, or a review-only pass with no code changes. |
 
 ## One-time Opik setup
 
@@ -73,9 +73,9 @@ Once installed, you can ask your agent things like:
 ```text
 opik-skills/
 ├── skills/
-│   ├── evaluate/
-│   ├── instrument/
-│   └── opik/
+│   ├── opik/
+│   ├── opik-evaluate/
+│   └── opik-instrument/
 ├── README.md
 ├── index.json
 └── LICENSE

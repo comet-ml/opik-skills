@@ -1,61 +1,17 @@
 {
   "schema_version": 1,
-  "pack_version": "0.2.21",
+  "pack_version": "0.2.24",
   "source": "comet-ml/opik-mcp",
-  "source_commit": "8d6f90dca9eb671aa5a52860f31a2a2cd72a1140",
-  "content_digest": "5b312aacfeb217627f85ede838bf1e44caa6366afa080256871efd5469a0b89c",
+  "source_commit": "7b3953731f64d0864dbac4af94367f56bbdbf079",
+  "content_digest": "e4ae15110b6a1f150b7c7ae2a2b248fc8679fe0bcf043cda9e4d904e6f4b10e7",
   "skills": [
     {
-      "name": "evaluate",
-      "description": "Build an LLM evaluation and run it against your app, returning an experiment with scores. Covers datasets, LLM judges, RAG evaluation, synthetic data, error analysis, and validating evaluators against human labels. Use when the user wants to measure or improve AI product quality, or asks about evals, judges, or evaluation metrics.",
-      "files": [
-        {
-          "path": "SKILL.md",
-          "sha256": "d7695eef901ed019b26b74822c5c21d42d38c794970464baebe3885e66a2720a"
-        },
-        {
-          "path": "references/error-analysis.md",
-          "sha256": "9949cea8cb3fa4cb37ced2e9f7e240f0c77cc6f900c38bd636db8736cbbcfe3d"
-        },
-        {
-          "path": "references/eval-audit.md",
-          "sha256": "23530d9cb8e8309b1c1424f7195af338f5ea96613a6c3846f0b912ef2722df23"
-        },
-        {
-          "path": "references/evaluate-rag.md",
-          "sha256": "09040abb4ab11b55f8689b3483ec9ab34801cc11f604107d6e8c1d873d730600"
-        },
-        {
-          "path": "references/generate-synthetic-data.md",
-          "sha256": "943da8a7238ceb51570495ad899362cddaf008c22d632153c7636da25c928bf6"
-        },
-        {
-          "path": "references/validate-evaluator.md",
-          "sha256": "e4a9aeca77b2fa7fc3123032fb2d2b69bae9896ddf59f192d969e4771ca32124"
-        },
-        {
-          "path": "references/write-judge-prompt.md",
-          "sha256": "c23ce6ebf1daa968e1a41f3abf49a66634d2a12086b3d30ca17ac85b60670d8a"
-        }
-      ]
-    },
-    {
-      "name": "instrument",
-      "description": "Add Opik tracing to an existing app and verify a real trace lands. Installs the Opik package, detects the language and LLM framework, adds the minimum tracing, runs a safe representative path, confirms a trace in Opik, and returns the trace link. Use for \"instrument my code\", \"add opik tracing\", \"add observability\", \"trace my agent\". Not for building a new app from scratch, or a review-only pass with no code changes.",
-      "files": [
-        {
-          "path": "SKILL.md",
-          "sha256": "86d72332f77a96282cb6defb33a265a1debdbc76d7ba36e361111dd2b1d4a625"
-        }
-      ]
-    },
-    {
       "name": "opik",
-      "description": "Reference for the Opik SDK — tracing, span types, framework integrations, threads, and the prompt library (Python, TypeScript, REST). Use for \"what span types exist\", \"how do I flush\", \"track_openai\", \"add OpikTracer\", \"version a prompt\". To instrument a repo end to end, use the `instrument` skill.",
+      "description": "Reference for the Opik SDK — tracing, span types, framework integrations, threads, and the prompt library (Python, TypeScript, REST). Use for \"what span types exist\", \"how do I flush\", \"track_openai\", \"add OpikTracer\", \"version a prompt\". To instrument a repo end to end, use the `opik-instrument` skill.",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "24a72d1c8383dcab95b4e04bbdcd4bec8176c56a07dab206fb679e92b1af43de"
+          "sha256": "de52cd0d657ef0f3ffca0405d1e279f5622e330ae73dcc360e961c747ddfc901"
         },
         {
           "path": "references/agent-patterns.md",
@@ -63,7 +19,7 @@
         },
         {
           "path": "references/best-practices.md",
-          "sha256": "c94844092c7834ac818eeea55c70a781867f3b95d2ea48db9d2da1f32832771e"
+          "sha256": "61bb57be0c41a3374769d5db2529f1978c87def6af4cd52b0461916f5d3e4570"
         },
         {
           "path": "references/evaluation-datasets.md",
@@ -96,6 +52,50 @@
         {
           "path": "references/tracing-typescript.md",
           "sha256": "f37183e065700e20d7248a35bd87e0470dd026d4a33e2ed788e7240b5ba75438"
+        }
+      ]
+    },
+    {
+      "name": "opik-evaluate",
+      "description": "Build an LLM evaluation and run it against your app, returning an experiment with scores. Covers datasets, LLM judges, RAG evaluation, synthetic data, error analysis, and validating evaluators against human labels. Use when the user wants to measure or improve AI product quality, or asks about evals, judges, or evaluation metrics.",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "9cb94d287c44234371dfc9537bbfebefcb69c7915b768765e70df79baeea56ec"
+        },
+        {
+          "path": "references/error-analysis.md",
+          "sha256": "9949cea8cb3fa4cb37ced2e9f7e240f0c77cc6f900c38bd636db8736cbbcfe3d"
+        },
+        {
+          "path": "references/eval-audit.md",
+          "sha256": "23530d9cb8e8309b1c1424f7195af338f5ea96613a6c3846f0b912ef2722df23"
+        },
+        {
+          "path": "references/evaluate-rag.md",
+          "sha256": "09040abb4ab11b55f8689b3483ec9ab34801cc11f604107d6e8c1d873d730600"
+        },
+        {
+          "path": "references/generate-synthetic-data.md",
+          "sha256": "943da8a7238ceb51570495ad899362cddaf008c22d632153c7636da25c928bf6"
+        },
+        {
+          "path": "references/validate-evaluator.md",
+          "sha256": "e4a9aeca77b2fa7fc3123032fb2d2b69bae9896ddf59f192d969e4771ca32124"
+        },
+        {
+          "path": "references/write-judge-prompt.md",
+          "sha256": "c23ce6ebf1daa968e1a41f3abf49a66634d2a12086b3d30ca17ac85b60670d8a"
+        }
+      ]
+    },
+    {
+      "name": "opik-instrument",
+      "description": "Add Opik tracing to an existing app and verify a real trace lands. Installs the Opik package, detects the language and LLM framework, adds the minimum tracing, runs a safe representative path, confirms a trace in Opik, and returns the trace link. Use for \"instrument my code\", \"add opik tracing\", \"add observability\", \"trace my agent\". Not for building a new app from scratch, or a review-only pass with no code changes.",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "ac951dfe54c3ef60eb01e07778cffb8890b07a483f5ceaceb138de460596a176"
         }
       ]
     }
