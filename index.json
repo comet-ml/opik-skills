@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "pack_version": "0.2.24",
+  "pack_version": "0.2.30",
   "source": "comet-ml/opik-mcp",
-  "source_commit": "7b3953731f64d0864dbac4af94367f56bbdbf079",
-  "content_digest": "e4ae15110b6a1f150b7c7ae2a2b248fc8679fe0bcf043cda9e4d904e6f4b10e7",
+  "source_commit": "a7c8be26ffd1906358606c97a8aa6cb1f66c832b",
+  "content_digest": "d8202f89b729df31f94970af62365e6cfe94fdc9b114745f232158804535d4ff",
   "skills": [
     {
       "name": "opik",
@@ -56,6 +56,16 @@
       ]
     },
     {
+      "name": "opik-diagnose",
+      "description": "Surface the Opik traces worth a developer's attention, ranked by signal — errors, failed tool calls, latency, regressions, and low online-eval scores — plus Diagnostics issues. Reads live/production traces via the SDK (search_traces and agent_insights) and works with no MCP; uses the MCP issue entity when connected. Returns a ranked shortlist, each item ready to hand to the explain skill. Use for \"what is broken in production\", \"which traces need attention\", \"find failing or slow traces\", \"which tool calls are failing\", \"triage my agent\". Not for offline experiment results (use evaluate or compare) and not for root-causing one trace (use explain).",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "46a0316227537bcb9cc250de09b075616998221724130d8cf05c3d6c9e605880"
+        }
+      ]
+    },
+    {
       "name": "opik-evaluate",
       "description": "Build an LLM evaluation and run it against your app, returning an experiment with scores. Covers datasets, LLM judges, RAG evaluation, synthetic data, error analysis, and validating evaluators against human labels. Use when the user wants to measure or improve AI product quality, or asks about evals, judges, or evaluation metrics.",
       "files": [
@@ -86,6 +96,16 @@
         {
           "path": "references/write-judge-prompt.md",
           "sha256": "c23ce6ebf1daa968e1a41f3abf49a66634d2a12086b3d30ca17ac85b60670d8a"
+        }
+      ]
+    },
+    {
+      "name": "opik-explain",
+      "description": "Root-cause a specific Opik trace, or a pattern across traces, and return a grounded explanation. Uses the hosted Opik MCP when it is connected, and falls back to SDK scripting otherwise. Returns the root cause, the evidence spans as clickable Opik UI links, and one suggested next step. Use for \"why did this trace fail\", \"explain this trace\", \"debug this trace\", \"why is my agent slow or wrong\". Not for adding tracing to an app (use the instrument skill) or for changing code.",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "d830954b01690bd9e404297ee1d320845a854bdf8f18d4b0fa3663b950c4d9fd"
         }
       ]
     },
