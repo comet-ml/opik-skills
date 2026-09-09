@@ -39,12 +39,20 @@ npx skills add comet-ml/opik-skills -g --all
 
 This works across ~40 coding agents, including Claude Code, Cursor, Codex, and GitHub Copilot.
 
+Using the [Opik MCP server](https://www.comet.com/docs/opik/mcp-server) as well? One command installs
+this skill pack together with the server for Claude Code, Cursor, VS Code Copilot, Codex and opencode,
+and needs no Opik SDK:
+
+```bash
+uvx opik mcp configure
+```
+
 ## Skills in this pack
 
 | Skill | What it does |
 | --- | --- |
 | [`opik`](./skills/opik/SKILL.md) | Reference for the Opik SDK — tracing, span types, framework integrations, threads, and the prompt library (Python, TypeScript, REST). Use for "what span types exist", "how do I flush", "track_openai", "add OpikTracer", "version a prompt". To instrument a repo end to end, use the `opik-instrument` skill. |
-| [`opik-diagnose`](./skills/opik-diagnose/SKILL.md) | Surface the Opik traces worth a developer's attention, ranked by signal — errors, failed tool calls, latency, regressions, and low online-eval scores — plus Diagnostics issues. Reads live/production traces via the SDK (search_traces and agent_insights) and works with no MCP; uses the MCP issue entity when connected. Returns a ranked shortlist, each item ready to hand to the explain skill. Use for "what is broken in production", "which traces need attention", "find failing or slow traces", "which tool calls are failing", "triage my agent". Not for offline experiment results (use evaluate or compare) and not for root-causing one trace (use explain). |
+| [`opik-diagnose`](./skills/opik-diagnose/SKILL.md) | Surface the Opik traces worth a developer's attention, ranked by signal — Diagnostics issues first, then errors, failed tool calls, latency, regressions, and low online-eval scores. With the Opik MCP connected it lists the project's agent_insights_issue entities, then fills the gaps with list (filters, sort, a time window); without the MCP it reads the same via the SDK (agent_insights and search_traces), so it works with no MCP. Returns a ranked shortlist, each item ready to hand to the explain skill. Use for "what is broken in production", "which traces need attention", "find failing or slow traces", "which tool calls are failing", "triage my agent". Not for offline experiment results (use evaluate or compare) and not for root-causing one trace (use explain). |
 | [`opik-evaluate`](./skills/opik-evaluate/SKILL.md) | Build an LLM evaluation and run it against your app, returning an experiment with scores. Covers datasets, LLM judges, RAG evaluation, synthetic data, error analysis, and validating evaluators against human labels. Use when the user wants to measure or improve AI product quality, or asks about evals, judges, or evaluation metrics. |
 | [`opik-explain`](./skills/opik-explain/SKILL.md) | Root-cause a specific Opik trace, or a pattern across traces, and return a grounded explanation. Uses the hosted Opik MCP when it is connected, and falls back to SDK scripting otherwise. Returns the root cause, the evidence spans as clickable Opik UI links, and one suggested next step. Use for "why did this trace fail", "explain this trace", "debug this trace", "why is my agent slow or wrong". Not for adding tracing to an app (use the instrument skill) or for changing code. |
 | [`opik-instrument`](./skills/opik-instrument/SKILL.md) | Add Opik tracing to an existing app and verify a real trace lands. Installs the Opik package, detects the language and LLM framework, adds the minimum tracing, runs a safe representative path, confirms a trace in Opik, and returns the trace link. Use for "instrument my code", "add opik tracing", "add observability", "trace my agent". Not for building a new app from scratch, or a review-only pass with no code changes. |

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "pack_version": "0.2.30",
+  "pack_version": "0.2.33",
   "source": "comet-ml/opik-mcp",
-  "source_commit": "a7c8be26ffd1906358606c97a8aa6cb1f66c832b",
-  "content_digest": "d8202f89b729df31f94970af62365e6cfe94fdc9b114745f232158804535d4ff",
+  "source_commit": "fe8592a5230dc364dc4815d1756476b91fd4405f",
+  "content_digest": "6e4da44d9887a3275734d16379c194a156c21562217209984dfffeac617ed34e",
   "skills": [
     {
       "name": "opik",
@@ -11,7 +11,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "de52cd0d657ef0f3ffca0405d1e279f5622e330ae73dcc360e961c747ddfc901"
+          "sha256": "51ffd8463dd5dfa70f443f59577e9420c1be4abfcb3042c2595c23adf0cc18bb"
         },
         {
           "path": "references/agent-patterns.md",
@@ -57,11 +57,11 @@
     },
     {
       "name": "opik-diagnose",
-      "description": "Surface the Opik traces worth a developer's attention, ranked by signal — errors, failed tool calls, latency, regressions, and low online-eval scores — plus Diagnostics issues. Reads live/production traces via the SDK (search_traces and agent_insights) and works with no MCP; uses the MCP issue entity when connected. Returns a ranked shortlist, each item ready to hand to the explain skill. Use for \"what is broken in production\", \"which traces need attention\", \"find failing or slow traces\", \"which tool calls are failing\", \"triage my agent\". Not for offline experiment results (use evaluate or compare) and not for root-causing one trace (use explain).",
+      "description": "Surface the Opik traces worth a developer's attention, ranked by signal — Diagnostics issues first, then errors, failed tool calls, latency, regressions, and low online-eval scores. With the Opik MCP connected it lists the project's agent_insights_issue entities, then fills the gaps with list (filters, sort, a time window); without the MCP it reads the same via the SDK (agent_insights and search_traces), so it works with no MCP. Returns a ranked shortlist, each item ready to hand to the explain skill. Use for \"what is broken in production\", \"which traces need attention\", \"find failing or slow traces\", \"which tool calls are failing\", \"triage my agent\". Not for offline experiment results (use evaluate or compare) and not for root-causing one trace (use explain).",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "46a0316227537bcb9cc250de09b075616998221724130d8cf05c3d6c9e605880"
+          "sha256": "495b0c3a06a99d091f437a10a092a02e292a99f4396a7a84343ebeb84d2ce32e"
         }
       ]
     },
@@ -105,7 +105,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "d830954b01690bd9e404297ee1d320845a854bdf8f18d4b0fa3663b950c4d9fd"
+          "sha256": "e9a5bd9edbdb2f3c92179abd6e824b6e7b9647979a04f11530ab24ff8f2a9b7d"
         }
       ]
     },
