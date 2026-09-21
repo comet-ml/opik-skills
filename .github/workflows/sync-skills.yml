@@ -12,16 +12,11 @@ name: Sync skills from opik-mcp
 # credentials for this repository, and the token below is scoped to this one.
 
 on:
-  # The schedule stays commented out until the first cutover has been run by hand
-  # and reviewed (OPIK-7621, ticket 07). Until then this workflow is inert: it can
-  # only be started deliberately from the Actions tab.
-  #
-  # Uncomment after the first sync has been merged.
-  #
-  # schedule:
-  #   # Daily. Skill content changes weekly at most, and at pull-request
-  #   # granularity a tighter schedule only produces noise.
-  #   - cron: '17 6 * * *'
+  # Daily. Skill content changes weekly at most, and at pull-request granularity a
+  # tighter schedule only produces noise. Enabled after the first four hand-run
+  # syncs (#24-#27) were reviewed and merged (OPIK-7621, ticket 07).
+  schedule:
+    - cron: '17 6 * * *'
   workflow_dispatch:
 
 permissions:
