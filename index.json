@@ -2,8 +2,8 @@
   "schema_version": 1,
   "pack_version": "0.2.36",
   "source": "comet-ml/opik-mcp",
-  "source_commit": "0baa5aecf0224701473efd968be4aa5a166ba99f",
-  "content_digest": "ff539046c81f706f71b3c3eab6c6929e3c8715e67d9a37d85e3cae40e102f906",
+  "source_commit": "8fb9c4b09f8854581e7b34a37049773f5fedd869",
+  "content_digest": "25abd5efa31f60c038777dd5443f49a7a03b6de47383de415a7ea3c74130884d",
   "skills": [
     {
       "name": "opik",
@@ -11,7 +11,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "449ebc365b10f530b32f5754113864ae454ad31cfbd9dbc4d4ab6b57d8f9da1b"
+          "sha256": "ee94038ec263bf1ad3607212f21f455364cf3d307bac977cb2a3f4b9584f8216"
         },
         {
           "path": "references/agent-patterns.md",
@@ -57,11 +57,11 @@
     },
     {
       "name": "opik-compare",
-      "description": "Run a candidate against the baseline over an Opik test suite and read the numbers back — which cases broke, which got fixed, the per-metric deltas, worst rows, and whether the two runs are comparable — with the Opik compare-view link. Runs via the SDK; reads results via the MCP when connected. Does not issue a ship/no-ship verdict. Use for \"did my fix work\", \"compare against the baseline\", \"run the regression suite\", \"why did quality drop\", \"which cases regressed\", \"compare these two experiments\". Not for live production triage (use diagnose), building an evaluation from scratch (use evaluate), or capturing a single case (use test).",
+      "description": "Run a candidate against the baseline over an Opik test suite and read the numbers back — which cases broke, which got fixed, the per-metric deltas, worst rows, and whether the two runs are comparable — with the Opik compare-view link. Runs via the SDK; reads results via the MCP when connected. Does not issue a ship/no-ship verdict. Use for \"did my fix work\", \"compare against the baseline\", \"run the regression suite\", \"why did quality drop\", \"which cases regressed\", \"compare these two experiments\". Not for the ship/hold decision itself (use verify), live production triage (use diagnose), building an evaluation from scratch (use evaluate), or capturing a single case (use test).",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "73786774ec0efc5e75b8e2f7d659010ca2c4393783c37a11d87eda64b3a8cd8d"
+          "sha256": "0dbe6d16e88776b8032518a05c884993f5b14ebb21081952edd997b8d025b5b5"
         }
       ]
     },
@@ -77,11 +77,11 @@
     },
     {
       "name": "opik-evaluate",
-      "description": "Build an LLM evaluation and run it against the app, returning an Opik experiment with scores and its link. Picks a test suite with judge assertions or a dataset with metrics, sources cases from traces or synthetic data, scores heuristics-first then one-failure-mode judges, runs client-side via the SDK or server-side for prompt-only targets, and reads the scores back. Covers RAG evaluation, error analysis, and validating a judge against human labels. Use for \"evaluate my agent\", \"measure quality\", \"build an eval\", \"write an LLM judge\", \"how good is my RAG\", \"set up evals for this\". Not for before/after on an existing suite (use compare), one regression case (use test), or scoring production traffic (use online-eval).",
+      "description": "Build an LLM evaluation and run it against the app, returning an Opik experiment with scores and its link. Picks a test suite with judge assertions or a dataset with metrics, sources cases from traces or synthetic data, scores heuristics-first then one-failure-mode judges, runs client-side via the SDK or server-side for prompt-only targets, and reads the scores back. Covers RAG evaluation, error analysis, writing and validating LLM judges against human labels, and auditing an existing eval pipeline. Use for \"evaluate my agent\", \"measure quality\", \"build an eval\", \"write an LLM judge for hallucinations\", \"audit our evaluation pipeline\", \"how good is my RAG\", \"set up evals for this\". Not for before/after on an existing suite (use compare), one regression case (use test), scoring production traffic (use online-eval), or the ship/hold decision (use verify).",
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "81f18c356159540477d99135d17582c78bf443c339e0bc46a746f7ab8b76bd57"
+          "sha256": "439d11b53de301d07607efc03a1b8a5ad66cdd21df563ddf6c8fd73ad65afbb5"
         },
         {
           "path": "references/error-analysis.md",
@@ -145,7 +145,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "c5f7241f75fed1d6fa135eb35887287474cf7553d74e90412b734dce07c146a7"
+          "sha256": "008305d6028fabfed3a689c56322b5599f22cf5d9cead37a290184b208fb6d8e"
         }
       ]
     },
@@ -156,6 +156,16 @@
         {
           "path": "SKILL.md",
           "sha256": "cc992d100690fc823fef2f5f12a10671d4e6235f75bc79353273d3d95b2b6e0c"
+        }
+      ]
+    },
+    {
+      "name": "opik-verify",
+      "description": "Decide ship or hold for a candidate from the compare skill's numbers, against an explicit release policy — regressions, pass rate, safety-tagged cases, subgroup consistency, latency and cost budgets, flakiness, evidence size, and whether the judge is validated. Reads two experiments on an Opik test suite via the SDK (or the MCP when connected) and returns a verdict with every criterion shown pass/fail. Use for \"is this safe to ship\", \"can I merge this\", \"go/no-go on this change\", \"gate this release\", \"should I roll this out\". Not for producing the numbers (use compare), building an evaluation (use evaluate), or deploying anything.",
+      "files": [
+        {
+          "path": "SKILL.md",
+          "sha256": "002d16c85beee5125d2168217238d6870c096fb8d821b65ff9c97eff44e922f0"
         }
       ]
     }
