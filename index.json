@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "pack_version": "0.2.36",
+  "pack_version": "0.2.37",
   "source": "comet-ml/opik-mcp",
-  "source_commit": "8fb9c4b09f8854581e7b34a37049773f5fedd869",
-  "content_digest": "25abd5efa31f60c038777dd5443f49a7a03b6de47383de415a7ea3c74130884d",
+  "source_commit": "be5a52148c46378c07aa768edb152d21c1d85d75",
+  "content_digest": "52dc0e4f987762b60b77ac55f6093c41250bea8b6a36df801f8b4296bab712c7",
   "skills": [
     {
       "name": "opik",
@@ -11,27 +11,27 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "ee94038ec263bf1ad3607212f21f455364cf3d307bac977cb2a3f4b9584f8216"
+          "sha256": "443fc16fcee23828f11e75c53c5f1b1ad8cd6b6eea82e48b881497c01f1f3171"
         },
         {
           "path": "references/agent-patterns.md",
-          "sha256": "084d35dcd4b64bae7d75b16aad56025955562c653564b4a36bc148646a704b17"
+          "sha256": "dc60f1780446e0962cb717893d1ca2039ef5ecd618b3baa9055d46fc22fb4b3c"
         },
         {
           "path": "references/best-practices.md",
-          "sha256": "61bb57be0c41a3374769d5db2529f1978c87def6af4cd52b0461916f5d3e4570"
+          "sha256": "5060569eb1e73602c54591528085c6d9ceca984bc73b485a8ac825ed4a14590e"
         },
         {
           "path": "references/evaluation-datasets.md",
-          "sha256": "3708081f70788b16f9f6c247b56f0f8f638d129dc268142680eda74810424eda"
+          "sha256": "2f6d0cd2c864081dfc0cc1a83e24b26fc059c09b717097559145840388b9ed33"
         },
         {
           "path": "references/evaluation-test-suites.md",
-          "sha256": "9a0f95058b76087494556350f22a5aa58492e194aff59071d830bd6e990cc6fb"
+          "sha256": "013ab9f4dc9fd5121d4a2248fae484d6602093619632b39b72de92d7450e31b0"
         },
         {
           "path": "references/integrations.md",
-          "sha256": "05e6626a3e9707f7e38445911b461886e5203d2706c0d8be006f31fbd69a1df2"
+          "sha256": "34050c51e01269cc01f12c0bda8241a465c0dea1946ec0e89f29fff78449c441"
         },
         {
           "path": "references/observability.md",
@@ -39,11 +39,11 @@
         },
         {
           "path": "references/production.md",
-          "sha256": "24a17a18e6b27e682783344dacc0827bb1ac8d305e309cfc6098ec22da675257"
+          "sha256": "775d8ab0c89df3fda05a79b2fbd529d20d39b45309f23f3dc8101ac1b8889f29"
         },
         {
           "path": "references/tracing-python.md",
-          "sha256": "32b736ad5ae992e9333dd61228f8439959364f60e9e3f62382df11282910e301"
+          "sha256": "bc1a7f913305f35fc783809a2a31e0b038007811ad268ced7be5a05775369b1d"
         },
         {
           "path": "references/tracing-rest-api.md",
@@ -61,7 +61,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "0dbe6d16e88776b8032518a05c884993f5b14ebb21081952edd997b8d025b5b5"
+          "sha256": "0675f445d69de3701ab44faa69f5e09078d6764040e09a7ab0f5cd83ee1c25e7"
         }
       ]
     },
@@ -71,7 +71,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "2fa004b8ff25b1ab405904ebefe67a21a6a570e30129eed9f698235c9059a2dc"
+          "sha256": "d142c0e7fb123d26914e782fe659ebbe58758abc95ebce7631719eaa95b4879a"
         }
       ]
     },
@@ -81,7 +81,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "439d11b53de301d07607efc03a1b8a5ad66cdd21df563ddf6c8fd73ad65afbb5"
+          "sha256": "459ce441d0a7f867a37615a23ab47b7012971c6038f99cc0c5334d71a18cc608"
         },
         {
           "path": "references/error-analysis.md",
@@ -101,7 +101,7 @@
         },
         {
           "path": "references/validate-evaluator.md",
-          "sha256": "e4a9aeca77b2fa7fc3123032fb2d2b69bae9896ddf59f192d969e4771ca32124"
+          "sha256": "46c08c96c93b4f3cf6bcb953f4549a676a87a8ce0318581363c7b76dc7a128bd"
         },
         {
           "path": "references/write-judge-prompt.md",
@@ -115,7 +115,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "e149d79d07f5ed6ba45b2bb0ae5572dde8a79d21770120d706694d624e1a6887"
+          "sha256": "6a6162c4cbea064234c9b388dcde227d67c9056e43c7217e7998ef74cc2a1af0"
         }
       ]
     },
@@ -125,7 +125,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "37448b1870dd36c5f5977730074b5d0e26adb802da635cf9643428121fa5a6d5"
+          "sha256": "1050ff525e8e30a264f7ea71f36341af67816943514b56b0c5c3f3aefc9daf0a"
         }
       ]
     },
@@ -135,7 +135,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "0611da9b553d67341ece9a3c7ef266201eaaa9b390b2fc620a7abcb152f8e798"
+          "sha256": "38e0293e0faaedcea284e98a8ffc236f0ccdd3ee17f2e52b727252c9b9afc099"
         }
       ]
     },
@@ -145,7 +145,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "008305d6028fabfed3a689c56322b5599f22cf5d9cead37a290184b208fb6d8e"
+          "sha256": "6c2dc7409480fb5534d8f2c0a130d009a5f0e032824a8e0575820511f2140bb9"
         }
       ]
     },
@@ -155,7 +155,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "cc992d100690fc823fef2f5f12a10671d4e6235f75bc79353273d3d95b2b6e0c"
+          "sha256": "4f19e7fcdffdb7ad7bd000885956e0bfbbf7e48c90255d3b9edb1fbbf764983b"
         }
       ]
     },
@@ -165,7 +165,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "002d16c85beee5125d2168217238d6870c096fb8d821b65ff9c97eff44e922f0"
+          "sha256": "41a4319503ec12f39d14f71a84618d86cd4a1b90824bd723703cfda5f17a80d9"
         }
       ]
     }
