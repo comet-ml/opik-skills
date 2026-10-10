@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "pack_version": "0.2.36",
+  "pack_version": "3.0.5",
   "source": "comet-ml/opik-mcp",
-  "source_commit": "8fb9c4b09f8854581e7b34a37049773f5fedd869",
-  "content_digest": "25abd5efa31f60c038777dd5443f49a7a03b6de47383de415a7ea3c74130884d",
+  "source_commit": "45bb96848ee4ff8152fabae46eca9151cb1e3d28",
+  "content_digest": "61b3e78c30b63669d1735ff352af7be1a162d10a999cf6e0c86acb762eb0eceb",
   "skills": [
     {
       "name": "opik",
@@ -11,27 +11,27 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "ee94038ec263bf1ad3607212f21f455364cf3d307bac977cb2a3f4b9584f8216"
+          "sha256": "443fc16fcee23828f11e75c53c5f1b1ad8cd6b6eea82e48b881497c01f1f3171"
         },
         {
           "path": "references/agent-patterns.md",
-          "sha256": "084d35dcd4b64bae7d75b16aad56025955562c653564b4a36bc148646a704b17"
+          "sha256": "dc60f1780446e0962cb717893d1ca2039ef5ecd618b3baa9055d46fc22fb4b3c"
         },
         {
           "path": "references/best-practices.md",
-          "sha256": "61bb57be0c41a3374769d5db2529f1978c87def6af4cd52b0461916f5d3e4570"
+          "sha256": "5060569eb1e73602c54591528085c6d9ceca984bc73b485a8ac825ed4a14590e"
         },
         {
           "path": "references/evaluation-datasets.md",
-          "sha256": "3708081f70788b16f9f6c247b56f0f8f638d129dc268142680eda74810424eda"
+          "sha256": "2f6d0cd2c864081dfc0cc1a83e24b26fc059c09b717097559145840388b9ed33"
         },
         {
           "path": "references/evaluation-test-suites.md",
-          "sha256": "9a0f95058b76087494556350f22a5aa58492e194aff59071d830bd6e990cc6fb"
+          "sha256": "013ab9f4dc9fd5121d4a2248fae484d6602093619632b39b72de92d7450e31b0"
         },
         {
           "path": "references/integrations.md",
-          "sha256": "05e6626a3e9707f7e38445911b461886e5203d2706c0d8be006f31fbd69a1df2"
+          "sha256": "34050c51e01269cc01f12c0bda8241a465c0dea1946ec0e89f29fff78449c441"
         },
         {
           "path": "references/observability.md",
@@ -39,11 +39,11 @@
         },
         {
           "path": "references/production.md",
-          "sha256": "24a17a18e6b27e682783344dacc0827bb1ac8d305e309cfc6098ec22da675257"
+          "sha256": "775d8ab0c89df3fda05a79b2fbd529d20d39b45309f23f3dc8101ac1b8889f29"
         },
         {
           "path": "references/tracing-python.md",
-          "sha256": "32b736ad5ae992e9333dd61228f8439959364f60e9e3f62382df11282910e301"
+          "sha256": "bc1a7f913305f35fc783809a2a31e0b038007811ad268ced7be5a05775369b1d"
         },
         {
           "path": "references/tracing-rest-api.md",
@@ -61,7 +61,19 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "0dbe6d16e88776b8032518a05c884993f5b14ebb21081952edd997b8d025b5b5"
+          "sha256": "99e50dd0e78a69ba99eaed81f6c3f0199107844b5963ae026e32304a433deeca"
+        },
+        {
+          "path": "references/examples.md",
+          "sha256": "e5df20f67f0a88f4b41db13ad98746b2ce1748829db9956e749ef57e3c52699b"
+        },
+        {
+          "path": "references/output-shape.md",
+          "sha256": "3b5248712ae0ec260bf02734e5f0c84930b3b91e1833b11d311a4575d8992666"
+        },
+        {
+          "path": "references/sdk-snippets.md",
+          "sha256": "5972d6b67ed8eaec54138585ce097f0822dd3bb70aa77be983447b8fb0b00cb2"
         }
       ]
     },
@@ -71,7 +83,23 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "2fa004b8ff25b1ab405904ebefe67a21a6a570e30129eed9f698235c9059a2dc"
+          "sha256": "ec8a2b627f5291fa73e9a2f437214c5b7ba7f21514a5e61b16520f72737cc32e"
+        },
+        {
+          "path": "references/diagnostics-list.md",
+          "sha256": "c910fd315df159a10aa1db5e3b3fa960d638e9d01583cd5e2bc126a4297679b1"
+        },
+        {
+          "path": "references/examples.md",
+          "sha256": "989dd32cd6a5b09655e7bf42acb64a123fe16b680c9eb0f21a726b4624df911e"
+        },
+        {
+          "path": "references/output-shape.md",
+          "sha256": "efe1f31a77fc1caa5196a0ea4a1e904df10a278b2543655b06946d2dc53e615c"
+        },
+        {
+          "path": "references/trace-queries.md",
+          "sha256": "74ce9f1b5614b2087a821b81cc21a8e2e47acf558300864d8ecfdda9b08ba349"
         }
       ]
     },
@@ -81,7 +109,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "439d11b53de301d07607efc03a1b8a5ad66cdd21df563ddf6c8fd73ad65afbb5"
+          "sha256": "bd75de698133881c1bc621db9b0f3944bf757c01b6b340a6b66956b265f9a553"
         },
         {
           "path": "references/error-analysis.md",
@@ -96,12 +124,24 @@
           "sha256": "09040abb4ab11b55f8689b3483ec9ab34801cc11f604107d6e8c1d873d730600"
         },
         {
+          "path": "references/examples.md",
+          "sha256": "d3de248c66c9c2b20693a3377976bc3470ca631627237ed1a3815c81a5f6fbf8"
+        },
+        {
           "path": "references/generate-synthetic-data.md",
           "sha256": "943da8a7238ceb51570495ad899362cddaf008c22d632153c7636da25c928bf6"
         },
         {
+          "path": "references/output-shape.md",
+          "sha256": "ca4af3d48b8dc2fd6df6641e1d07b5660340cd4873212534f8ba49055135b23f"
+        },
+        {
+          "path": "references/sdk-snippets.md",
+          "sha256": "41542d42b562089a252411d99e072433a3abfe29fd1440cd6169695b0618b8f5"
+        },
+        {
           "path": "references/validate-evaluator.md",
-          "sha256": "e4a9aeca77b2fa7fc3123032fb2d2b69bae9896ddf59f192d969e4771ca32124"
+          "sha256": "46c08c96c93b4f3cf6bcb953f4549a676a87a8ce0318581363c7b76dc7a128bd"
         },
         {
           "path": "references/write-judge-prompt.md",
@@ -115,7 +155,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "e149d79d07f5ed6ba45b2bb0ae5572dde8a79d21770120d706694d624e1a6887"
+          "sha256": "6a6162c4cbea064234c9b388dcde227d67c9056e43c7217e7998ef74cc2a1af0"
         }
       ]
     },
@@ -125,7 +165,19 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "37448b1870dd36c5f5977730074b5d0e26adb802da635cf9643428121fa5a6d5"
+          "sha256": "f9ed1944734f015a6bd12ff37d5fd5342e4ef2aee95c859f0bce609465d62764"
+        },
+        {
+          "path": "references/examples.md",
+          "sha256": "43ff76c1602d059ac190e7b357bf9404c8f5408fd5830ea13dfc7091b4159c17"
+        },
+        {
+          "path": "references/output-shape.md",
+          "sha256": "23fefd3529f4159f4a3fc2a51aa15725e488953e9484bd8b9ec44b32c1cd7b09"
+        },
+        {
+          "path": "references/verify-ingestion.md",
+          "sha256": "db8c5ba791e8302ec21743deb7d2350db9ff4d4fa3efe663e5915d10346f34a7"
         }
       ]
     },
@@ -135,7 +187,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "0611da9b553d67341ece9a3c7ef266201eaaa9b390b2fc620a7abcb152f8e798"
+          "sha256": "38e0293e0faaedcea284e98a8ffc236f0ccdd3ee17f2e52b727252c9b9afc099"
         }
       ]
     },
@@ -145,7 +197,19 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "008305d6028fabfed3a689c56322b5599f22cf5d9cead37a290184b208fb6d8e"
+          "sha256": "7ccac054c38d0fbf02cb9672b3b2023843bf04aafb6c017b4f78f7b8b9c977c2"
+        },
+        {
+          "path": "references/examples.md",
+          "sha256": "ed6d0b6f6766a796b9e32e2da5a41b9e116d6f6de6f4302d62528df54df8734a"
+        },
+        {
+          "path": "references/output-shape.md",
+          "sha256": "3c8636e960c9c256a737b8fc7a0974b4c0b69d077696a8b79dfdaf1c6b7ae9a4"
+        },
+        {
+          "path": "references/sdk-snippets.md",
+          "sha256": "c7cd7d6acc7607bfac341c6f0d81d65d115d2883979cc0ab86c46ba599f79e24"
         }
       ]
     },
@@ -155,7 +219,7 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "cc992d100690fc823fef2f5f12a10671d4e6235f75bc79353273d3d95b2b6e0c"
+          "sha256": "4f19e7fcdffdb7ad7bd000885956e0bfbbf7e48c90255d3b9edb1fbbf764983b"
         }
       ]
     },
@@ -165,7 +229,23 @@
       "files": [
         {
           "path": "SKILL.md",
-          "sha256": "002d16c85beee5125d2168217238d6870c096fb8d821b65ff9c97eff44e922f0"
+          "sha256": "7e9515b513ce747ec7b4ad1eea966640ef8a15bb38574897e5f80a0a0e36e8b6"
+        },
+        {
+          "path": "references/examples.md",
+          "sha256": "6269f0a940565d6295d160a5de7e94522c4a097170dd9aeefa46815a0c3260c9"
+        },
+        {
+          "path": "references/output-shape.md",
+          "sha256": "c304db3a45d3f0e092ef26ed1ff8a721b8a6bbfc75b0b47cd348faa3644cb92b"
+        },
+        {
+          "path": "references/policy.md",
+          "sha256": "d7df9e857b92bda2a892c0440563840f8f390370fa40291c28549aedff9c9be7"
+        },
+        {
+          "path": "references/sdk-reads.md",
+          "sha256": "5bb26f2e710a1e672b5f0b463048205214d0bb7c2c5585dcea02222a3b8c6e06"
         }
       ]
     }
