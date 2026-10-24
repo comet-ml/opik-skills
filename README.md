@@ -25,7 +25,7 @@
 </div>
 
 > **This repository is generated.** The skills are authored in
-> [comet-ml/opik-mcp](https://github.com/comet-ml/opik-mcp) under `src/opik_mcp/skills/`
+> [comet-ml/opik-mcp](https://github.com/comet-ml/opik-mcp) under `plugins/opik/skills/`
 > and published here automatically. Edits made here are overwritten by the next sync —
 > please open your pull request against `opik-mcp` instead.
 
@@ -44,7 +44,7 @@ this skill pack together with the server for Claude Code, Cursor, VS Code Copilo
 and needs no Opik SDK:
 
 ```bash
-uvx opik mcp configure
+uvx opik@latest mcp configure
 ```
 
 ## Skills in this pack
