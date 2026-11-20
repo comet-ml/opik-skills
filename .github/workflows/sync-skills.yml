@@ -36,7 +36,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # Pin to the default branch. Without this, a `workflow_dispatch` from any
           # other branch or tag would become the base of the sync branch, and the
