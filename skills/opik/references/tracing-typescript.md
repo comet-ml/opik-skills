@@ -110,8 +110,9 @@ class TranslationService {
   name: "custom-name",           // Override method name
   type: "llm",                   // Span type
   projectName: "my-project",     // Project name
-  tags: ["production"],          // Tags
-  metadata: { version: "1.0" }   // Metadata
+  tags: ["v2"],                  // Tags
+  metadata: { version: "1.0" },  // Metadata
+  environment: "production",     // Trace environment (default: OPIK_ENVIRONMENT)
 })
 ```
 
@@ -119,15 +120,13 @@ class TranslationService {
 
 ### OpenAI Integration
 
-```bash
-npm install opik-openai
-```
+Install the `opik-openai` package.
 
 ```typescript
 import OpenAI from "openai";
 import { trackOpenAI } from "opik-openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI();
 const trackedOpenAI = trackOpenAI(openai);
 
 // All calls are automatically traced
@@ -142,9 +141,7 @@ await trackedOpenAI.flush();
 
 ### Vercel AI SDK Integration
 
-```bash
-npm install opik-vercel @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node
-```
+Install `opik-vercel`, `@opentelemetry/sdk-node` and `@opentelemetry/auto-instrumentations-node`.
 
 ```typescript
 import { openai } from "@ai-sdk/openai";
@@ -196,6 +193,7 @@ const trace = client.trace({
   metadata?: object;         // Custom metadata
   tags?: string[];           // Tags for filtering
   threadId?: string;         // Group related traces
+  environment?: string;      // e.g. "production" (default: OPIK_ENVIRONMENT)
   projectName?: string;      // Override project
 });
 ```
@@ -336,6 +334,10 @@ const trace2 = client.trace({
 trace2.end({ output: { response: "It's sunny!" } });
 ```
 
+To tag the thread with an environment, pass `environment: "production"` to
+`client.trace(...)` or set `OPIK_ENVIRONMENT`. The thread takes the environment
+of its first trace and keeps it, so use the same environment for every turn.
+
 ## Logging to Specific Projects
 
 ```typescript
@@ -404,7 +406,7 @@ app.listen(3000, () => console.log("Listening on port 3000"));
 Then pair with the Opik UI:
 
 ```bash
-opik connect --pair <CODE> npx tsx summarise.ts
+opik connect --pair <CODE> node --import tsx summarise.ts
 ```
 
 ### Multiple Parameters

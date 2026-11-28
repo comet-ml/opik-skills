@@ -2,11 +2,6 @@
 name: opik-explain
 description: Root-cause a specific Opik trace, or a pattern across traces, and return a grounded explanation. Uses the hosted Opik MCP when it is connected, and falls back to SDK scripting otherwise. Returns the root cause, the evidence spans as clickable Opik UI links, and one suggested next step. Use for "why did this trace fail", "explain this trace", "debug this trace", "why is my agent slow or wrong". Not for adding tracing to an app (use the instrument skill) or for changing code.
 compatibility: Tested with Claude Code; works with any Agent Skills-compatible host (Cursor, VS Code Copilot, Codex). Requires a Python or TypeScript project with Opik configured and at least one trace. Install the `opik` skill alongside this one — it holds the shared SDK and observability references; without it, this skill falls back to the public docs.
-allowed-tools:
-  - Read
-  - Grep
-  - Glob
-  - Bash
 metadata:
   last_updated: "2026-09-08"
   source_commit: "2.0.0"
@@ -43,12 +38,17 @@ Either way, read every span's input/output/error/duration.
 
 ```python
 import opik
+
 client = opik.Opik()
 
 tid = "<trace_id>"
-trace = client.get_trace_content(tid)       # TracePublic: exposes project_id, input, output, error info — NOT project_name (accessing .project_name raises)
+trace = client.get_trace_content(
+    tid
+)  # TracePublic: exposes project_id, input, output, error info — NOT project_name (accessing .project_name raises)
 project = client.rest_client.projects.get_project_by_id(trace.project_id).name
-spans = client.search_spans(project_name=project, trace_id=tid)   # spans come from a SEPARATE call, not from the trace object
+spans = client.search_spans(
+    project_name=project, trace_id=tid
+)  # spans come from a SEPARATE call, not from the trace object
 # ALWAYS pass project_name: without it the SDK searches the configured default project, which
 # returns an empty list (or a 404 if that project doesn't exist) even for a valid trace id.
 # Reconstruct the tree via each span's parent_span_id (the root span has none).

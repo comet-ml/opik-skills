@@ -2,11 +2,6 @@
 name: opik-test
 description: Turn a failing Opik trace (or a described failure) into a repeatable regression check — a test-suite item with the trace's input and one or two binary assertions — so a fix can be verified by the compare skill. Works over the SDK; uses the MCP write tool when connected. Returns the suite, the item, and the assertion. Use for "turn this into a test", "add a regression case for this trace", "make sure this doesn't happen again", "capture this failure", "add this to the test suite". Not for running the suite (use compare), building an evaluation from scratch (use evaluate), or explaining why the trace failed (use explain).
 compatibility: Tested with Claude Code; works with any Agent Skills-compatible host (Cursor, VS Code Copilot, Codex). Requires a Python or TypeScript project with Opik configured and at least one trace, or a described input/expected pair. Install the `opik` skill alongside this one — it holds the shared test-suite and dataset references; without it, this skill falls back to the public docs.
-allowed-tools:
-  - Read
-  - Grep
-  - Glob
-  - Bash
 metadata:
   last_updated: "2026-09-15"
   source_commit: "2.0.0"
@@ -37,12 +32,17 @@ Ask only at a genuine, non-inferable blocker (see **Blockers**).
 ### 2. Read the trace (SDK-first)
 ```python
 import opik
+
 client = opik.Opik()
 
 tid = "<trace_id>"
-trace = client.get_trace_content(tid)       # TracePublic: .input, .output, .project_id — NOT .project_name (accessing it raises)
+trace = client.get_trace_content(
+    tid
+)  # TracePublic: .input, .output, .project_id — NOT .project_name (accessing it raises)
 project = client.rest_client.projects.get_project_by_id(trace.project_id).name
-spans = client.search_spans(project_name=project, trace_id=tid)   # root span (no parent_span_id) names the entrypoint the compare skill will call
+spans = client.search_spans(
+    project_name=project, trace_id=tid
+)  # root span (no parent_span_id) names the entrypoint the compare skill will call
 # Pass project_name: without it search_spans looks in the configured default project and returns nothing.
 ```
 Take the **input** exactly as the trace recorded it (the root span / trace `input`), the **actual output** (what went wrong), and the **root span name** (the entrypoint). When the MCP is connected, `read('trace', id)` is an equivalent path — a convenience, not a requirement.
@@ -69,15 +69,19 @@ suite = client.get_or_create_test_suite(
 # Dedupe on the source trace before inserting.
 existing = suite.get_items(filter_string=f'data.source_trace_id = "{tid}"')
 if not existing:
-    suite.insert([{
-        "data": {
-            "input": trace.input,                 # verbatim from the trace
-            "source_trace_id": tid,
-            # "expected_output": "...",           # only when the correct answer is exact
-        },
-        "assertions": ["<positive assertion>", "<optional negative assertion>"],
-        "description": "Regression from trace <tid>: <one-line failure>. Entrypoint: <root span name>",
-    }])
+    suite.insert(
+        [
+            {
+                "data": {
+                    "input": trace.input,  # verbatim from the trace
+                    "source_trace_id": tid,
+                    # "expected_output": "...",           # only when the correct answer is exact
+                },
+                "assertions": ["<positive assertion>", "<optional negative assertion>"],
+                "description": "Regression from trace <tid>: <one-line failure>. Entrypoint: <root span name>",
+            }
+        ]
+    )
 ```
 
 The `description` carries the **entrypoint** (root span name) because `/opik-compare` needs to know which function to call to run the item; the `source_trace_id` key is what keeps a second `/opik-test` on the same trace from duplicating it.
