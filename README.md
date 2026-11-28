@@ -25,7 +25,7 @@
 </div>
 
 > **This repository is generated.** The skills are authored in
-> [comet-ml/opik-mcp](https://github.com/comet-ml/opik-mcp) under `src/opik_mcp/skills/`
+> [comet-ml/opik-mcp](https://github.com/comet-ml/opik-mcp) under `plugins/opik/skills/`
 > and published here automatically. Edits made here are overwritten by the next sync —
 > please open your pull request against `opik-mcp` instead.
 
@@ -44,7 +44,7 @@ this skill pack together with the server for Claude Code, Cursor, VS Code Copilo
 and needs no Opik SDK:
 
 ```bash
-uvx opik mcp configure
+uvx opik@latest mcp configure
 ```
 
 ## Skills in this pack
@@ -52,6 +52,7 @@ uvx opik mcp configure
 | Skill | What it does |
 | --- | --- |
 | [`opik`](./skills/opik/SKILL.md) | Reference for the Opik SDK — tracing, span types, framework integrations, threads, and the prompt library (Python, TypeScript, REST). Use for "what span types exist", "how do I flush", "track_openai", "add OpikTracer", "version a prompt". To instrument a repo end to end, use the `opik-instrument` skill. |
+| [`opik-annotate`](./skills/opik-annotate/SKILL.md) | Set up human review in Opik — create an annotation queue for a project's traces or threads and give it a custom annotator view, an HTML page that shows annotators each item the way they need to judge it (the email beside the reply, the conversation as chat bubbles) instead of raw JSON. Writes through the Opik MCP when connected, the Opik SDK otherwise. Returns the queue, its link, and what annotators will see. Use for "build a custom annotator view", "set up an annotation queue", "make the review queue show the email and the reply side by side", "change what annotators see", "remove the custom view". Not for automatic scoring (use online-eval) or for finding which traces to review (use diagnose). |
 | [`opik-compare`](./skills/opik-compare/SKILL.md) | Run a candidate against the baseline over an Opik test suite and read the numbers back — which cases broke, which got fixed, the per-metric deltas, worst rows, and whether the two runs are comparable — with the Opik compare-view link. Runs via the SDK; reads results via the MCP when connected. Does not issue a ship/no-ship verdict. Use for "did my fix work", "compare against the baseline", "run the regression suite", "why did quality drop", "which cases regressed", "compare these two experiments". Not for the ship/hold decision itself (use verify), live production triage (use diagnose), building an evaluation from scratch (use evaluate), or capturing a single case (use test). |
 | [`opik-diagnose`](./skills/opik-diagnose/SKILL.md) | Surface the Opik traces worth a developer's attention, ranked by signal — Diagnostics issues first, then errors, failed tool calls, latency, regressions, and low online-eval scores. With the Opik MCP connected it lists the project's agent_insights_issue entities, offers to turn Diagnostics on when the project has it switched off, then fills the gaps with list (filters, sort, a time window); without the MCP it reads the same via the SDK (agent_insights and search_traces), so it works with no MCP. Returns a ranked shortlist, each item ready to hand to the explain skill. Use for "what is broken in production", "which traces need attention", "find failing or slow traces", "which tool calls are failing", "triage my agent". Not for offline experiment results (use evaluate or compare) and not for root-causing one trace (use explain). |
 | [`opik-evaluate`](./skills/opik-evaluate/SKILL.md) | Build an LLM evaluation and run it against the app, returning an Opik experiment with scores and its link. Picks a test suite with judge assertions or a dataset with metrics, sources cases from traces or synthetic data, scores heuristics-first then one-failure-mode judges, runs client-side via the SDK or server-side for prompt-only targets, and reads the scores back. Covers RAG evaluation, error analysis, writing and validating LLM judges against human labels, and auditing an existing eval pipeline. Use for "evaluate my agent", "measure quality", "build an eval", "write an LLM judge for hallucinations", "audit our evaluation pipeline", "how good is my RAG", "set up evals for this". Not for before/after on an existing suite (use compare), one regression case (use test), scoring production traffic (use online-eval), or the ship/hold decision (use verify). |
@@ -89,6 +90,7 @@ Once installed, you can ask your agent things like:
 opik-skills/
 ├── skills/
 │   ├── opik/
+│   ├── opik-annotate/
 │   ├── opik-compare/
 │   ├── opik-diagnose/
 │   ├── opik-evaluate/

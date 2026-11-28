@@ -2,12 +2,8 @@
 name: opik
 description: Reference for the Opik SDK — tracing, span types, framework integrations, threads, and the prompt library (Python, TypeScript, REST). Use for "what span types exist", "how do I flush", "track_openai", "add OpikTracer", "version a prompt". To instrument a repo end to end, use the `opik-instrument` skill.
 compatibility: Tested with Claude Code; works with any Agent Skills-compatible host (Cursor, VS Code Copilot, Codex). A reference — needs no Opik connection to read; the snippets assume the `opik` Python or TypeScript SDK 2.x. The task-shaped skills (opik-instrument, opik-diagnose, opik-explain, opik-test, opik-compare, opik-evaluate, opik-online-eval, opik-optimize, opik-verify) read this skill's references and expect it installed beside them.
-allowed-tools:
-  - Read
-  - Grep
-  - Glob
 metadata:
-  last_updated: "2026-09-17"
+  last_updated: "2026-10-23"
   source_commit: "2.0.0"
 ---
 
@@ -38,17 +34,21 @@ Do NOT use `retrieval` or any other value.
 ```python
 import opik
 
+
 @opik.track(name="agent", type="general")
 def agent(query: str) -> str:
     return generate(retrieve(query))
 
+
 @opik.track(type="tool")
 def retrieve(query): ...
+
 
 @opik.track(type="llm")
 def generate(ctx): ...
 
-opik.flush_tracker()   # required in scripts
+
+opik.flush_tracker()  # required in scripts
 ```
 
 ## TypeScript — tracing
@@ -85,10 +85,12 @@ top-level traces instead of nesting under your span.
 ```python
 from opik.opik_context import get_current_span_data
 
+
 @opik.track
 def call_llm(messages):
     return litellm.completion(
-        model="gpt-4o", messages=messages,
+        model="gpt-4o",
+        messages=messages,
         metadata={"opik": {"current_span_data": get_current_span_data()}},
     )
 ```
@@ -104,6 +106,12 @@ def handle(session_id: str, message: str) -> str:
     opik.update_current_trace(thread_id=session_id)
     return reply(message)
 ```
+
+To tag a thread with an environment (`production`, `staging`, ...), set
+`environment` on its traces: `@opik.track(environment="production")`,
+`client.trace(..., environment=...)`, or `OPIK_ENVIRONMENT` as the default.
+The thread takes the environment of its **first** trace and keeps it, so use
+the same environment for every turn. Use this field, not tags or metadata.
 
 ## Prompt library
 
@@ -167,10 +175,11 @@ ops: = != > >= < <= contains not_contains starts_with ends_with is_empty is_not_
 Strings in double quotes, numbers bare, `duration` in **milliseconds**, dates as
 ISO-8601 instants with a timezone (`"2026-09-08T10:00:00Z"`). Scores and
 dictionaries take a key: `feedback_scores.accuracy < 0.5`,
-`metadata.environment = "prod"`. `AND` is the only connector.
+`metadata.user_id = "u-42"`. `AND` is the only connector.
 
 ```
 error_info is_not_empty AND duration > 5000
+environment = "production"                              # traces, spans, threads
 type = "llm" AND usage.total_tokens > 10000            # spans
 feedback_scores.hallucination > 0.5 AND start_time >= "2026-09-08T00:00:00Z"
 ```
